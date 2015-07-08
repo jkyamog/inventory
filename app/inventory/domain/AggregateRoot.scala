@@ -1,0 +1,31 @@
+package inventory.domain
+
+import inventory.events.{SellProduct, CreateProduct, Event}
+import inventory.storage.EventStore
+import play.api.Logger
+
+
+trait AggregateRoot[T] {
+
+  def apply(entity: T, event: Event): T
+
+  def init(entityId: Long, event: Event): Option[T]
+
+}
+
+object AggregateRoot {
+  def loadFromHistory[T : AggregateRoot](entityId: Long, history: Seq[Event]): Option[T] = {
+    val aggregateRoot = implicitly[AggregateRoot[T]]
+    history.headOption.flatMap { firstEvent =>
+      aggregateRoot.init(entityId, firstEvent).map { initialEntity =>
+        history.tail.foldLeft(initialEntity)((entity, event) => aggregateRoot.apply(entity, event))
+      }
+    }
+  }
+
+  def getById[T : AggregateRoot](entityId: Long): Option[T] = {
+    val events = EventStore.loadEventsFor(entityId)
+    loadFromHistory(entityId, events)
+  }
+
+}
