@@ -13,8 +13,8 @@ class AggregateRootSpec extends Specification {
 
       val create = CreateProduct("test", None, 5, None, 2.0, None)
 
-      val (txId, eId) = EventStore.saveEvent(-1, create)
-      EventStore.saveEvent(eId, SellProduct(eId, 2))
+      val (txId, eId) = EventStore saveEvent create
+      EventStore.saveEvent(SellProduct(eId, 2), eId)
 
       val product = AggregateRoot.getById(eId)
 

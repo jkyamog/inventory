@@ -21,7 +21,7 @@ object EventStore {
     entityId
   }
 
-  def saveEvent(entityId: Long, event: Event): (Long, Long) = {
+  def saveEvent(event: Event, entityId: Long = -1): (Long, Long) = {
     val txId = nextTxId
     val eId = if (entityId <= 0) nextEntityId else entityId
     storage.append(Data(txId, eId, event))
