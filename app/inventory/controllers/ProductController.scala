@@ -1,41 +1,38 @@
 package inventory.controllers
 
-import inventory.domain.Product.ProductAggregate
 import inventory.events.CreateProduct
 import inventory.storage.EventStore
 import inventory.domain.{AggregateRoot, Product}
-import play.api.Play
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
 
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc._
-import slick.driver.JdbcProfile
+
+import scala.concurrent.Future
 
 
-class ProductController extends Controller with HasDatabaseConfig[JdbcProfile] {
-  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
-
-  import dbConfig.driver.api._
+class ProductController extends Controller {
 
   implicit val productFormatter = Json.format[Product]
   implicit val productCreateFormatter = Json.format[CreateProduct]
 
-  def create = Action(parse.json) { request =>
+  def create = Action.async(parse.json) { request =>
     request.body.validate[CreateProduct].fold (
       errors => {
-        BadRequest(JsError.toJson(errors))
+        Future.successful(BadRequest(JsError.toJson(errors)))
       },
       createProduct => {
-        val (txId, eId) = EventStore saveEvent createProduct
-        Ok(Json.obj("txId" -> txId, "eId" -> eId))
+        for {
+          (txId, eId) <- EventStore saveEvent createProduct
+        } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
       }
     )
   }
 
-  def get(id: Long) = Action { request =>
+  def get(id: Long) = Action.async { request =>
     import Product.ProductAggregate
 
-    AggregateRoot.getById(id) match {
+    AggregateRoot.getById(id).map {
       case Some(product) => Ok(Json.toJson(product))
       case None => NotFound
     }

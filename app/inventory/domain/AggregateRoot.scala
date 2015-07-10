@@ -1,8 +1,11 @@
 package inventory.domain
 
-import inventory.events.{SellProduct, CreateProduct, Event}
+import inventory.events.Event
 import inventory.storage.EventStore
-import play.api.Logger
+
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
+import scala.concurrent.Future
 
 
 trait AggregateRoot[T] {
@@ -23,9 +26,10 @@ object AggregateRoot {
     }
   }
 
-  def getById[T : AggregateRoot](entityId: Long): Option[T] = {
-    val events = EventStore.loadEventsFor(entityId)
-    loadFromHistory(entityId, events)
+  def getById[T : AggregateRoot](entityId: Long): Future[Option[T]] = {
+    EventStore.loadEventsFor(entityId).map { events =>
+      loadFromHistory(entityId, events)
+    }
   }
 
 }
