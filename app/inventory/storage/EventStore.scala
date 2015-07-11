@@ -1,76 +1,27 @@
 package inventory.storage
 
-import inventory.events.{SellProduct, CreateProduct, Event}
+import inventory.events.Event
 
-import play.api.Play
-import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json.{Json, JsResult, Format, JsValue}
-
-import slick.driver.JdbcProfile
+import play.api.libs.json.Json
 
 import scala.concurrent.Future
 
-object EventStore extends HasDatabaseConfig[JdbcProfile] {
-  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+case class EventData(txId: Option[Long], entityId: Long, event: String)
 
-  import dbConfig.driver.api._
+trait EventStore {
 
-  var entityIdSequence = Sequence[Long]("events_entity_id_seq")
+  def nextEntityId: Future[Long]
 
-  def nextEntityId = db.run(
-    entityIdSequence.next.result
-  )
+  def storeEvent(eventData: EventData): Future[Long]
 
-  case class EventData(txId: Option[Long], entityId: Long, Event: String)
-
-  class Events(tag: Tag) extends Table[EventData](tag, "events") {
-
-    def txId = column[Long]("tx_id", O.PrimaryKey, O.AutoInc)
-    def entityId = column[Long]("entity_id")
-    def event = column[String]("event")
-
-    def * = (txId.?, entityId, event) <> (EventData.tupled, EventData.unapply _)
-  }
-
-  val events = TableQuery[Events]
-
-  implicit val eventFormatter = new Format[Event] {
-    def reads(js: JsValue): JsResult[Event] = {
-      val eventType = (js \ "type").as[String]
-      eventType match {
-        case "CreateProduct" =>
-          implicit val productCreateFormatter = Json.format[CreateProduct]
-
-          val event = (js \ "event").get
-          Json.fromJson[CreateProduct](event)
-
-        case "SellProduct" =>
-          implicit val sellProductFormatter = Json.format[SellProduct]
-
-          val event = (js \ "event").get
-          Json.fromJson[SellProduct](event)
-      }
-    }
+  def getEvents(entityId: Long): Future[Seq[EventData]]
+}
 
 
-    def writes(event: Event): JsValue = {
-      event match {
-        case c: CreateProduct =>
-          implicit val productCreateFormatter = Json.format[CreateProduct]
+object EventStore extends SqlEventStore {
 
-          val json = Json.toJson(c)
-
-          Json.obj("type" -> "CreateProduct", "event" -> json)
-        case c: SellProduct =>
-          implicit val sellProductFormatter = Json.format[SellProduct]
-
-          val json = Json.toJson(c)
-
-          Json.obj("type" -> "SellProduct", "event" -> json)
-      }
-    }
-  }
+  import JsonFormatter.eventFormatter
 
   def saveEvent(event: Event, entityId: Long = -1): Future[(Long, Long)] = {
     val eIdFuture = if (entityId <= 0) nextEntityId else Future.successful(entityId)
@@ -79,22 +30,16 @@ object EventStore extends HasDatabaseConfig[JdbcProfile] {
     eIdFuture.flatMap { eId =>
       val eventData = EventData(None, eId, eventJson.toString)
 
-      db.run {
         for {
-          txId <- events.returning(events.map(_.txId)) += eventData
+          txId <- storeEvent(eventData)
         } yield (txId, eId)
-      }
     }
 
   }
 
   def loadEventsFor(entityId: Long): Future[Seq[Event]] = {
-    val eventsOnDb = db.run(
-      events.filter(_.entityId === entityId).map(_.event).result
-    )
-
-    eventsOnDb.map { eventStr =>
-      val jsons = eventStr.map(Json.parse)
+    getEvents(entityId).map { events =>
+      val jsons = events.map(e => Json.parse(e.event))
       jsons.map{ json =>
         Json.fromJson[Event](json).get
       }
