@@ -1,10 +1,14 @@
 # --- !Ups
 
-CREATE TABLE EVENTS (
-  TX_ID SERIAL PRIMARY KEY,
-  ENTITY_ID SERIAL,
-  EVENT TEXT);
+CREATE TABLE "events" (
+  "tx_id" SERIAL PRIMARY KEY,
+  "entity_id" BIGINT,
+  "event" TEXT);
+
+CREATE SEQUENCE "events_entity_id_seq";
 
 # --- !Downs
 
-DROP TABLE EVENTS;
+DROP SEQUENCE "events_entity_id_seq";
+
+DROP TABLE "events";

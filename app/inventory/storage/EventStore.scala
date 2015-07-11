@@ -1,6 +1,6 @@
 package inventory.storage
 
-import inventory.events.{CreateProduct, Event}
+import inventory.events.{SellProduct, CreateProduct, Event}
 
 import play.api.Play
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
@@ -44,6 +44,12 @@ object EventStore extends HasDatabaseConfig[JdbcProfile] {
 
           val event = (js \ "event").get
           Json.fromJson[CreateProduct](event)
+
+        case "SellProduct" =>
+          implicit val sellProductFormatter = Json.format[SellProduct]
+
+          val event = (js \ "event").get
+          Json.fromJson[SellProduct](event)
       }
     }
 
@@ -56,6 +62,12 @@ object EventStore extends HasDatabaseConfig[JdbcProfile] {
           val json = Json.toJson(c)
 
           Json.obj("type" -> "CreateProduct", "event" -> json)
+        case c: SellProduct =>
+          implicit val sellProductFormatter = Json.format[SellProduct]
+
+          val json = Json.toJson(c)
+
+          Json.obj("type" -> "SellProduct", "event" -> json)
       }
     }
   }
