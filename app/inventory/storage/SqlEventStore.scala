@@ -1,14 +1,22 @@
 package inventory.storage
 
+import inventory.events.Event
+
 import play.api.Play
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
+import play.api.libs.json.Json
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import slick.driver.JdbcProfile
 
-trait SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
+
+object SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
 
   import dbConfig.driver.api._
+  import JsonFormatter.eventFormatter
+
+  case class EventData(txId: Option[Long], entityId: Long, event: String)
 
   class Events(tag: Tag) extends Table[EventData](tag, "events") {
 
@@ -27,16 +35,27 @@ trait SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
     entityIdSequence.next.result
   )
 
-  def storeEvent(eventData: EventData) = {
+  def storeEvent(entityId: Long, event: Event) = {
+    val eventJson = Json.toJson(event)
+    val eventData = EventData(None, entityId, eventJson.toString)
+
     db.run(
       events.returning(events.map(_.txId)) += eventData
     )
   }
 
   def getEvents(entityId: Long) = {
-    db.run(
+    val eventsFromDb = db.run(
       events.filter(_.entityId === entityId).result
     )
+
+    eventsFromDb.map { events =>
+      val jsons = events.map(e => Json.parse(e.event))
+      jsons.map{ json =>
+        Json.fromJson[Event](json).get
+      }
+    }
+
   }
 
 }

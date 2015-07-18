@@ -26,8 +26,8 @@ object AggregateRoot {
     }
   }
 
-  def getById[T : AggregateRoot](entityId: Long): Future[Option[T]] = {
-    EventStore.loadEventsFor(entityId).map { events =>
+  def getById[T : AggregateRoot](entityId: Long)(eventStore: EventStore): Future[Option[T]] = {
+    eventStore.getEvents(entityId).map { events =>
       loadFromHistory(entityId, events)
     }
   }

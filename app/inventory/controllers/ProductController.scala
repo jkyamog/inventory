@@ -1,7 +1,7 @@
 package inventory.controllers
 
 import inventory.events.CreateProduct
-import inventory.storage.EventStore
+import inventory.storage.{SqlEventStore, EventStore}
 import inventory.domain.{AggregateRoot, Product}
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -10,11 +10,16 @@ import play.api.mvc._
 
 import scala.concurrent.Future
 
+class Products extends ProductController {
+  val eventStore = SqlEventStore
+}
 
-class ProductController extends Controller {
+trait ProductController extends Controller {
 
   implicit val productFormatter = Json.format[Product]
   implicit val productCreateFormatter = Json.format[CreateProduct]
+
+  val eventStore: EventStore
 
   def create = Action.async(parse.json) { request =>
     request.body.validate[CreateProduct].fold (
@@ -23,7 +28,7 @@ class ProductController extends Controller {
       },
       createProduct => {
         for {
-          (txId, eId) <- EventStore saveEvent createProduct
+          (txId, eId) <- eventStore saveEvent createProduct
         } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
       }
     )
@@ -32,7 +37,7 @@ class ProductController extends Controller {
   def get(id: Long) = Action.async { request =>
     import Product.ProductAggregate
 
-    AggregateRoot.getById(id).map {
+    AggregateRoot.getById(id)(eventStore).map {
       case Some(product) => Ok(Json.toJson(product))
       case None => NotFound
     }
