@@ -8,7 +8,6 @@ case class SellProduct(
   productId: Long,
   quantity: Int
 ) extends Event
-// TODO validate that quantity is not below 0 after selling
 
 case class RestockProduct(
   productId: Long,
@@ -28,10 +27,15 @@ case class ArchiveProduct(
   productId: Long
 ) extends Event
 
-case class NotifyReorder(
+case class ReorderNotification(
   productId: Long
 ) extends Event
 
 case class DismissNotification(
   notificationId: Long
 ) extends Event
+
+case class SellFailedNotification(
+  productId: Long,
+  quantityAttempted: Int
+)

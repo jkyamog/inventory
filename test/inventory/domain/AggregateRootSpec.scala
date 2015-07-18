@@ -8,10 +8,8 @@ import play.api.test.{WithApplication, FakeApplication, PlaySpecification}
 
 class AggregateRootSpec extends PlaySpecification {
 
-  val fakeApplication = FakeApplication()
-
   "AggregateRoot" should {
-    "get an entity by id and use the correct type through type class implicit" in new WithApplication(fakeApplication) {
+    "get an entity by id and use the correct type through type class implicit" in {
       import Product.ProductAggregate
 
       val create = CreateProduct("test", None, 5, None, 2.0, None)
@@ -23,7 +21,7 @@ class AggregateRootSpec extends PlaySpecification {
         product <- AggregateRoot.getById(eId)(eventStore)
       } yield (product, eId))
 
-      product must beSome(Product(eId, "test", 3))
+      product must beASuccessfulTry(Product(eId, "test", 3))
     }
   }
 }

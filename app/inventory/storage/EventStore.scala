@@ -11,11 +11,10 @@ trait EventStore {
   def saveEvent(event: Event, entityId: Long = -1): Future[(Long, Long)] = {
     val eIdFuture = if (entityId <= 0) nextEntityId else Future.successful(entityId)
 
-    eIdFuture.flatMap { eId =>
-      for {
-        txId <- storeEvent(eId, event)
-      } yield (txId, eId)
-    }
+    for {
+      eId <- eIdFuture
+      txId <- storeEvent(eId, event)
+    } yield (txId, eId)
 
   }
 
