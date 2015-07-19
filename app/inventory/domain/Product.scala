@@ -21,7 +21,7 @@ object Product {
       case CreateProduct(name, description, quantity, reorderPoint, price, packaging) =>
         Success(Product(entityId, name, quantity))
       case _ =>
-        val message = "Not possible to create project from event: " + event
+        val message = "Not possible to init product from event: " + event
         Logger.error(message)
         Failure(new RuntimeException(message))
     }

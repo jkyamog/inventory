@@ -38,4 +38,12 @@ case class DismissNotification(
 case class SellFailedNotification(
   productId: Long,
   quantityAttempted: Int
-)
+) extends Event
+
+class UnappliedEvent(val event: Event) extends RuntimeException
+
+object UnappliedEvent {
+  def unapply(ue: UnappliedEvent): Option[Event] = {
+    Some(ue.event)
+  }
+}

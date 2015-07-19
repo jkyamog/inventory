@@ -46,7 +46,7 @@ object SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
 
   def getEvents(entityId: Long) = {
     val eventsFromDb = db.run(
-      events.filter(_.entityId === entityId).result
+      events.sortBy(_.txId).filter(_.entityId === entityId).result
     )
 
     eventsFromDb.map { events =>
