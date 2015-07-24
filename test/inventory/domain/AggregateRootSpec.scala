@@ -21,7 +21,7 @@ class AggregateRootSpec extends PlaySpecification {
         product <- AggregateRoot.getById(eId)(eventStore)
       } yield (product, eId))
 
-      product must beASuccessfulTry(Product(eId, "test", 3))
+      product must beEqualTo(Product(eId, "test", 3))
     }
   }
 }

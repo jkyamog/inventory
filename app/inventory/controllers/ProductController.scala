@@ -40,11 +40,8 @@ trait ProductController extends Controller {
   def get(id: Long) = Action.async { request =>
     import Product.ProductAggregate
 
-    AggregateRoot.getById(id)(eventStore).map {
-      case Success(product) => Ok(Json.toJson(product))
-      case Failure(error) =>
-        Logger.error("failed to get productId: " + id, error)
-        InternalServerError
+    AggregateRoot.getById(id)(eventStore).map { product =>
+      Ok(Json.toJson(product))
     }
   }
 
@@ -55,23 +52,11 @@ trait ProductController extends Controller {
       },
       sellProduct => {
         import Product.ProductAggregate
-
-        AggregateRoot.getById(id)(eventStore).flatMap { tryProduct =>
-          val product = for {
-            product <- tryProduct
-            nextProduct <- ProductAggregate.apply(sellProduct)(product)
-          } yield nextProduct
-
-          product match {
-            case Success(_) =>
-              for {
-                (txId, eId) <- eventStore saveEvent(sellProduct, id)
-              } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
-            case Failure(err) =>
-              Logger.error("unable to sell " + sellProduct, err)
-              Future.successful(InternalServerError)
-          }
-        }
+          for {
+            product <- AggregateRoot.getById(id)(eventStore)
+            _ <- Future.fromTry(ProductAggregate.apply(sellProduct)(Some(product)))
+            (txId, eId) <- eventStore saveEvent(sellProduct, id)
+          } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
       }
     )
   }

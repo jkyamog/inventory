@@ -1,7 +1,7 @@
 package inventory.domain
 
 import inventory.domain.Product.ProductAggregate
-import inventory.events.{FailedToApply$, RestockProduct, SellProduct}
+import inventory.events.{RestockProduct, SellProduct}
 import play.api.test.PlaySpecification
 
 class ProductSpec extends PlaySpecification {
@@ -10,7 +10,7 @@ class ProductSpec extends PlaySpecification {
       val product = Product(1l, "test product", 3)
       val sell = SellProduct(1l, 2)
 
-      val soldProduct = ProductAggregate(sell)(product)
+      val soldProduct = ProductAggregate(sell)(Some(product))
 
       soldProduct must beASuccessfulTry(Product(1l, "test product", 1))
     }
@@ -19,7 +19,7 @@ class ProductSpec extends PlaySpecification {
       val product = Product(1l, "test product", 3)
       val restock = RestockProduct(1l, 2)
 
-      val newStockProduct = ProductAggregate(restock)(product)
+      val newStockProduct = ProductAggregate(restock)(Some(product))
 
       newStockProduct must beASuccessfulTry(Product(1l, "test product", 5))
     }
@@ -28,7 +28,7 @@ class ProductSpec extends PlaySpecification {
       val product = Product(1l, "test product", 2)
       val sell = SellProduct(1l, 3)
 
-      val soldProduct = ProductAggregate(sell)(product)
+      val soldProduct = ProductAggregate(sell)(Some(product))
 
       soldProduct must beFailedTry//(FailedToSell)
 //        case FailedToSell(event) => event must beEqualTo(sell)
