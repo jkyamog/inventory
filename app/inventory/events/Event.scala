@@ -1,8 +1,6 @@
 package inventory.events
 
-sealed trait Event {
-
-}
+sealed trait Event
 
 case class SellProduct(
   productId: Long,
@@ -40,10 +38,10 @@ case class SellFailedNotification(
   quantityAttempted: Int
 ) extends Event
 
-class UnappliedEvent(val event: Event) extends RuntimeException
+class FailedToApply(val event: Event) extends RuntimeException
 
-object UnappliedEvent {
-  def unapply(ue: UnappliedEvent): Option[Event] = {
+object FailedToApply {
+  def unapply(ue: FailedToApply): Option[Event] = {
     Some(ue.event)
   }
 }

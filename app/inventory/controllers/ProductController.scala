@@ -1,6 +1,6 @@
 package inventory.controllers
 
-import inventory.events.{UnappliedEvent, SellFailedNotification, SellProduct, CreateProduct}
+import inventory.events.{FailedToApply, SellFailedNotification, SellProduct, CreateProduct}
 import inventory.storage.{SqlEventStore, EventStore}
 import inventory.domain.{AggregateRoot, Product}
 import play.api.Logger
@@ -43,12 +43,6 @@ trait ProductController extends Controller {
     AggregateRoot.getById(id)(eventStore).map {
       case Success(product) => Ok(Json.toJson(product))
       case Failure(error) =>
-        error match {
-          case UnappliedEvent(event: SellProduct) =>
-            // TODO: must only be done once
-            eventStore saveEvent SellFailedNotification(event.productId, event.quantity)
-        }
-
         Logger.error("failed to get productId: " + id, error)
         InternalServerError
     }
@@ -62,20 +56,21 @@ trait ProductController extends Controller {
       sellProduct => {
         import Product.ProductAggregate
 
-        val trySell = AggregateRoot.getById(id)(eventStore).map { productTry =>
-          for {
-            product <- productTry
+        AggregateRoot.getById(id)(eventStore).flatMap { tryProduct =>
+          val product = for {
+            product <- tryProduct
             nextProduct <- ProductAggregate.apply(sellProduct)(product)
           } yield nextProduct
-        }
 
-        trySell.flatMap {
-          case Success(_) =>
-            for {
-              (txId, eId) <- eventStore saveEvent (sellProduct, id)
-            } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
-          case Failure(error) =>
-            Future.successful(InternalServerError)
+          product match {
+            case Success(_) =>
+              for {
+                (txId, eId) <- eventStore saveEvent(sellProduct, id)
+              } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
+            case Failure(err) =>
+              Logger.error("unable to sell " + sellProduct, err)
+              Future.successful(InternalServerError)
+          }
         }
       }
     )

@@ -1,20 +1,33 @@
 package inventory.domain
 
-import inventory.events.{CreateProduct, SellProduct, Event}
+import inventory.events.{FailedToApply, CreateProduct, SellProduct, Event}
 import play.api.Logger
 
 import scala.util.{Failure, Success, Try}
 
+case class Product(id: Long, name: String, quantity: Int)
 
-case class Product(id: Long, name: String, quantity: Int) {
-  def sell(quantity: Int) = this.copy(quantity = this.quantity - quantity)
+class ProductEvents extends PartialFunction[(Event, Product), Product] {
+  override def apply(ep: (Event, Product)) = ep match {
+    case (event: SellProduct, product: Product) if event.quantity <= product.quantity =>
+      product.copy(quantity = product.quantity - event.quantity)
+  }
+
+  override def isDefinedAt(ep: (Event, Product)): Boolean = ep match {
+    case (event: SellProduct, product: Product) if event.quantity <= product.quantity =>
+      true
+    case _ => false
+  }
 }
 
 object Product {
   implicit object ProductAggregate extends AggregateRoot[Product] {
-    override def apply(event: Event)(product: Product): Try[Product] = event match {
-      case SellProduct(productId, quantity) if productId == product.id =>
-        Success(product.sell(quantity))
+    override def apply(event: Event)(product: Product): Try[Product] = {
+      val pe = new ProductEvents
+      if (pe.isDefinedAt((event, product)))
+        Success(pe((event, product)))
+      else
+        Failure(new FailedToApply(event))
     }
 
     override def init(entityId: Long, event: Event): Try[Product] = event match {

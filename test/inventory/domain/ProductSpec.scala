@@ -1,7 +1,7 @@
 package inventory.domain
 
 import inventory.domain.Product.ProductAggregate
-import inventory.events.{RestockProduct, SellProduct}
+import inventory.events.{FailedToApply$, RestockProduct, SellProduct}
 import play.api.test.PlaySpecification
 
 class ProductSpec extends PlaySpecification {
@@ -24,13 +24,15 @@ class ProductSpec extends PlaySpecification {
       newStockProduct must beASuccessfulTry(Product(1l, "test product", 5))
     }
 
-    "not sell if the quantity is lower than sold, and create a notification that its failed" in {
-      val product = Product(1l, "test product", 3)
-      val sell = SellProduct(1l, 2)
+    "not sell if the quantity is lower than sold" in {
+      val product = Product(1l, "test product", 2)
+      val sell = SellProduct(1l, 3)
 
       val soldProduct = ProductAggregate(sell)(product)
 
-      soldProduct must beASuccessfulTry(Product(1l, "test product", 3))
+      soldProduct must beFailedTry//(FailedToSell)
+//        case FailedToSell(event) => event must beEqualTo(sell)
+//      }//beASuccessfulTry(Product(1l, "test product", 3))
 
     }
   }
