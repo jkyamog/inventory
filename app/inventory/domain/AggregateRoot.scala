@@ -10,7 +10,7 @@ import scala.util.{Success, Failure, Try}
 
 
 trait EventApply[T] extends PartialFunction[(Event, Option[T]), T] {
-  def apply(ep: (Event, Option[T])): T
+  def apply(ep: (Event, Option[T])): T // TODO: should this be Try[T]
 }
 
 

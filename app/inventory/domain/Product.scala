@@ -9,7 +9,7 @@ case class Product(id: Long, name: String, quantity: Int)
 class ProductEvents extends EventApply[Product] {
   override def apply(ep: (Event, Option[Product])) = ep match {
     case (ProductCreated(name, description, quantity, reorderPoint, price, packaging), None) =>
-      Product(-1, name, quantity)
+      Product(-1, name, quantity) // TODO: -1 id is wrong
     case (event: ProductSold, Some(product)) if event.quantity <= product.quantity =>
       product.copy(quantity = product.quantity - event.quantity)
   }

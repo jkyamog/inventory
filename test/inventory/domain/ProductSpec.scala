@@ -10,7 +10,7 @@ class ProductSpec extends PlaySpecification {
       val product = Product(1l, "test product", 3)
       val sell = ProductSold(1l, 2)
 
-      val soldProduct = Some((sell, Some(product))) map productEvents
+      val soldProduct = Some((sell, Some(product))) collect productEvents
 
       soldProduct must beSome(Product(1l, "test product", 1))
     }
@@ -19,7 +19,7 @@ class ProductSpec extends PlaySpecification {
       val product = Product(1l, "test product", 3)
       val restock = ProductRestocked(1l, 2)
 
-      val newStockProduct = Some((restock, Some(product))) map productEvents
+      val newStockProduct = Some((restock, Some(product))) collect productEvents
 
       newStockProduct must beSome(Product(1l, "test product", 5))
     }
@@ -28,7 +28,7 @@ class ProductSpec extends PlaySpecification {
       val product = Product(1l, "test product", 2)
       val sell = ProductSold(1l, 3)
 
-      val soldProduct = Some((sell, Some(product))) map productEvents
+      val soldProduct = Some((sell, Some(product))) collect productEvents
 
       soldProduct must beNone//(FailedToSell)
 //        case FailedToSell(event) => event must beEqualTo(sell)
