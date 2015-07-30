@@ -2,17 +2,17 @@ package inventory.events
 
 sealed trait Event
 
-case class SellProduct(
+case class ProductSold(
   productId: Long,
   quantity: Int
 ) extends Event
 
-case class RestockProduct(
+case class ProductRestocked(
   productId: Long,
   quantity: Int
 ) extends Event
 
-case class CreateProduct(
+case class ProductCreated(
   name: String,
   description: Option[String],
   quantity: Int,
@@ -21,7 +21,7 @@ case class CreateProduct(
   packaging: Option[String]
 ) extends Event
 
-case class ArchiveProduct(
+case class ProductArchived(
   productId: Long
 ) extends Event
 

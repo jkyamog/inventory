@@ -1,8 +1,9 @@
 package inventory.controllers
 
-import inventory.events.{FailedToApply, SellFailedNotification, SellProduct, CreateProduct}
+import inventory.commands._
+import inventory.events._
 import inventory.storage.{SqlEventStore, EventStore}
-import inventory.domain.{AggregateRoot, Product}
+import inventory.domain.{ProductCommand, ProductHelper, AggregateRoot, Product}
 import play.api.Logger
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -30,15 +31,17 @@ trait ProductController extends Controller {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
       createProduct => {
+        val productSold = ProductCommand(createProduct)(None)
+
         for {
-          (txId, eId) <- eventStore saveEvent createProduct
+          (txId, eId) <- eventStore saveEvent productSold
         } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
       }
     )
   }
 
   def get(id: Long) = Action.async { request =>
-    import Product.ProductAggregate
+    import ProductHelper.productEvents
 
     AggregateRoot.getById(id)(eventStore).map { product =>
       Ok(Json.toJson(product))
@@ -51,11 +54,11 @@ trait ProductController extends Controller {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
       sellProduct => {
-        import Product.ProductAggregate
+        import ProductHelper.productEvents
           for {
             product <- AggregateRoot.getById(id)(eventStore)
-            _ <- Future.fromTry(ProductAggregate.apply(sellProduct)(Some(product)))
-            (txId, eId) <- eventStore saveEvent(sellProduct, id)
+            productSold = ProductCommand.apply(sellProduct)(Some(product))
+            (txId, eId) <- eventStore saveEvent(productSold, id)
           } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
       }
     )

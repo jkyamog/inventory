@@ -1,6 +1,6 @@
 package inventory.storage
 
-import inventory.events.{SellProduct, CreateProduct, Event}
+import inventory.events.{ProductSold, ProductCreated, Event}
 import play.api.libs.json.{Json, JsResult, JsValue, Format}
 
 object JsonFormatter {
@@ -10,29 +10,29 @@ object JsonFormatter {
       val eventType = (js \ "type").as[String]
       eventType match {
         case "CreateProduct" =>
-          implicit val productCreateFormatter = Json.format[CreateProduct]
+          implicit val productCreateFormatter = Json.format[ProductCreated]
 
           val event = (js \ "event").get
-          Json.fromJson[CreateProduct](event)
+          Json.fromJson[ProductCreated](event)
         case "SellProduct" =>
-          implicit val sellProductFormatter = Json.format[SellProduct]
+          implicit val sellProductFormatter = Json.format[ProductSold]
 
           val event = (js \ "event").get
-          Json.fromJson[SellProduct](event)
+          Json.fromJson[ProductSold](event)
       }
     }
 
 
     def writes(event: Event): JsValue = {
       event match {
-        case c: CreateProduct =>
-          implicit val productCreateFormatter = Json.format[CreateProduct]
+        case c: ProductCreated =>
+          implicit val productCreateFormatter = Json.format[ProductCreated]
 
           val json = Json.toJson(c)
 
           Json.obj("type" -> "CreateProduct", "event" -> json)
-        case c: SellProduct =>
-          implicit val sellProductFormatter = Json.format[SellProduct]
+        case c: ProductSold =>
+          implicit val sellProductFormatter = Json.format[ProductSold]
 
           val json = Json.toJson(c)
 

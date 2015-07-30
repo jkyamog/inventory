@@ -1,32 +1,39 @@
 package inventory.domain
 
-import inventory.events.Event
+import inventory.events.{FailedToApply, Event}
 import inventory.storage.EventStore
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 import scala.concurrent.Future
-import scala.util.{Failure, Try}
+import scala.util.{Success, Failure, Try}
 
 
-trait AggregateRoot[T] {
-
-  def apply(event: Event)(entity: Option[T]): Try[T]
-
+trait EventApply[T] extends PartialFunction[(Event, Option[T]), T] {
+  def apply(ep: (Event, Option[T])): T
 }
 
+
 object AggregateRoot {
-  def loadFromHistory[T : AggregateRoot](history: Iterable[Event]): Try[T] = {
-    val aggregateRoot = implicitly[AggregateRoot[T]]
+
+  def apply[T](event: Event)(entity: Option[T])(eventApply: EventApply[T]): Try[T] = {
+    if (eventApply.isDefinedAt((event, entity)))
+      Success(eventApply((event, entity)))
+    else
+      Failure(new FailedToApply(event))
+  }
+
+  def loadFromHistory[T : EventApply](history: Iterable[Event]): Try[T] = {
+    val applyEvent = implicitly[EventApply[T]]
     history.headOption match {
       case Some(firstEvent) =>
-        val initialEntity = aggregateRoot.apply(firstEvent)(None)
-        history.tail.foldLeft(initialEntity)((entity, event) => entity.flatMap(e => aggregateRoot(event)(Some(e))))
+        val initialEntity = applyEvent(firstEvent, None)
+        Success(history.tail.foldLeft(initialEntity)((entity, event) => applyEvent(event, Some(entity))))
       case None => Failure(new RuntimeException("empty history, nothing to load"))
     }
   }
 
-  def getById[T : AggregateRoot](entityId: Long)(eventStore: EventStore): Future[T] = {
+  def getById[T : EventApply](entityId: Long)(eventStore: EventStore): Future[T] = {
     eventStore.getEvents(entityId).flatMap{ event =>
       Future fromTry loadFromHistory(event)
     }
