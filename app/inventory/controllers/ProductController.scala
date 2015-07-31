@@ -15,6 +15,7 @@ import scala.util.{Failure, Success}
 
 class Products extends ProductController {
   val eventStore = SqlEventStore
+  inventory.reads.Products.init
 }
 
 trait ProductController extends Controller {

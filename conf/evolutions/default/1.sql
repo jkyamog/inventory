@@ -7,7 +7,15 @@ CREATE TABLE "events" (
 
 CREATE SEQUENCE "events_entity_id_seq";
 
+CREATE TABLE "products" (
+  "id" BIGINT PRIMARY KEY,
+  "name" TEXT,
+  "quantity" INT
+)
+
 # --- !Downs
+
+DROP TABLE "products";
 
 DROP SEQUENCE "events_entity_id_seq";
 
