@@ -1,5 +1,7 @@
 package inventory.storage
 
+import java.util.UUID
+
 import inventory.events.Event
 
 import play.api.Play
@@ -16,12 +18,12 @@ object SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
   import dbConfig.driver.api._
   import JsonFormatter.eventFormatter
 
-  case class EventData(txId: Option[Long], entityId: Long, event: String)
+  case class EventData(txId: Option[Long], entityId: UUID, event: String)
 
   class Events(tag: Tag) extends Table[EventData](tag, "events") {
 
     def txId = column[Long]("tx_id", O.PrimaryKey, O.AutoInc)
-    def entityId = column[Long]("entity_id")
+    def entityId = column[UUID]("entity_id")
     def event = column[String]("event")
 
     def * = (txId.?, entityId, event) <> (EventData.tupled, EventData.unapply _)
@@ -29,13 +31,7 @@ object SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
 
   val events = TableQuery[Events]
 
-  var entityIdSequence = Sequence[Long]("events_entity_id_seq")
-
-  def nextEntityId = db.run(
-    entityIdSequence.next.result
-  )
-
-  def storeEvent(entityId: Long, event: Event) = {
+  def storeEvent(entityId: UUID, event: Event) = {
     val eventJson = Json.toJson(event)
     val eventData = EventData(None, entityId, eventJson.toString)
 
@@ -44,7 +40,7 @@ object SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
     )
   }
 
-  def getEvents(entityId: Long) = {
+  def getEvents(entityId: UUID) = {
     val eventsFromDb = db.run(
       events.sortBy(_.txId).filter(_.entityId === entityId).result
     )

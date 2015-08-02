@@ -1,5 +1,7 @@
 package inventory.storage
 
+import java.util.UUID
+
 import inventory.events.Event
 
 import scala.concurrent.Future
@@ -8,17 +10,11 @@ import scala.concurrent.Future
  * naive implementation of ES, not threadsafe
  */
 class TestEventStore extends EventStore {
-  var entityId = 0l
   var txId = 0l
 
-  val events = collection.mutable.ListBuffer[(Long, Long, Event)]()
+  val events = collection.mutable.ListBuffer[(Long, UUID, Event)]()
 
-  override def nextEntityId: Future[Long] = {
-    entityId += 1
-    Future.successful(entityId)
-  }
-
-  override def getEvents(entityId: Long): Future[Seq[Event]] = {
+  override def getEvents(entityId: UUID): Future[Seq[Event]] = {
     Future.successful{
       events.filter(_._2 == entityId).map{
         case (txId, entityId, event) => event
@@ -26,7 +22,7 @@ class TestEventStore extends EventStore {
     }
   }
 
-  override def storeEvent(entityId: Long, event: Event): Future[Long] = {
+  override def storeEvent(entityId: UUID, event: Event): Future[Long] = {
     txId += 1
 
     events append ((txId, entityId, event))

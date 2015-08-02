@@ -1,5 +1,7 @@
 package inventory.reads
 
+import java.util.UUID
+
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
@@ -19,7 +21,7 @@ object Products extends HasDatabaseConfig[JdbcProfile] {
   import dbConfig.driver.api._
 
   class Products(tag: Tag) extends Table[Product](tag, "products") {
-    def id = column[Long]("id", O.PrimaryKey)
+    def id = column[UUID]("id", O.PrimaryKey)
     def name = column[String]("name")
     def quantity = column[Int]("quantity")
 

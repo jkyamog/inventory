@@ -1,5 +1,7 @@
 package inventory.storage
 
+import java.util.UUID
+
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.{Keep, Sink, Source}
@@ -11,7 +13,7 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import scala.concurrent.Future
 
 
-case class EventTx(txId: Long, entityId: Long, event: Event)
+case class EventTx(txId: Long, entityId: UUID, event: Event)
 
 
 trait EventStore {
@@ -32,24 +34,19 @@ trait EventStore {
     }
   }
 
-  def saveEvent(event: Event, entityId: Long = -1): Future[(Long, Long)] = {
-    val eIdFuture = if (entityId <= 0) nextEntityId else Future.successful(entityId)
+  def saveEvent(event: Event, entityId: UUID): Future[Long] = {
+    val txId = for {
+      txId <- storeEvent(entityId, event)
+    } yield txId
 
-    val txIdeId = for {
-      eId <- eIdFuture
-      txId <- storeEvent(eId, event)
-    } yield (txId, eId)
-
-    txIdeId.onSuccess { case (txId, eId) =>
+    txId.onSuccess { case txId =>
       Logger.debug("publishing event " + event)
-      actorRef ! EventTx(txId, eId, event)
+      actorRef ! EventTx(txId, entityId, event)
     }
 
-    txIdeId
+    txId
   }
-  def nextEntityId: Future[Long]
+  def storeEvent(entityId: UUID, event: Event): Future[Long]
 
-  def storeEvent(entityId: Long, event: Event): Future[Long]
-
-  def getEvents(entityId: Long): Future[Seq[Event]]
+  def getEvents(entityId: UUID): Future[Seq[Event]]
 }

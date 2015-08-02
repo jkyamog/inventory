@@ -1,16 +1,18 @@
 package inventory.commands
 
+import java.util.UUID
+
 import inventory.events.Event
 
 sealed trait Command
 
 case class SellProduct(
-  productId: Long,
+  productId: UUID,
   quantity: Int
 ) extends Command
 
 case class RestockProduct(
-  productId: Long,
+  productId: UUID,
   quantity: Int
 ) extends Command
 
@@ -24,7 +26,7 @@ case class CreateProduct(
 ) extends Command
 
 case class ArchiveProduct(
-  productId: Long
+  productId: UUID
 ) extends Command
 
 trait CommandApply[T] {

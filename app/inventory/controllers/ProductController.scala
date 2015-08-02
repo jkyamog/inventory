@@ -1,5 +1,7 @@
 package inventory.controllers
 
+import java.util.UUID
+
 import inventory.commands._
 import inventory.events._
 import inventory.storage.{SqlEventStore, EventStore}
@@ -32,35 +34,42 @@ trait ProductController extends Controller {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
       createProduct => {
-        val productSold = ProductCommand(createProduct)(None)
+        ProductCommand(createProduct)(None) match {
+          case productCreated: ProductCreated =>
+            for {
+              txId <- eventStore.saveEvent(productCreated, productCreated.productId)
+            } yield Ok(Json.obj("txId" -> txId, "eId" -> productCreated.productId))
 
-        for {
-          (txId, eId) <- eventStore saveEvent productSold
-        } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
+          case _ => Future.successful(InternalServerError)
+        }
+
       }
     )
   }
 
-  def get(id: Long) = Action.async { request =>
+  def get(id: String) = Action.async { request =>
     import ProductHelper.productEvents
 
-    AggregateRoot.getById(id)(eventStore).map { product =>
+    val productId = UUID.fromString(id)
+    AggregateRoot.getById(productId)(eventStore).map { product =>
       Ok(Json.toJson(product))
     }
   }
 
-  def sell(id: Long) = Action.async(parse.json) { request =>
+  def sell(id: String) = Action.async(parse.json) { request =>
     request.body.validate[SellProduct].fold (
       errors => {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
       sellProduct => {
         import ProductHelper.productEvents
+
+        val productId = UUID.fromString(id)
           for {
-            product <- AggregateRoot.getById(id)(eventStore)
+            product <- AggregateRoot.getById(productId)(eventStore)
             productSold = ProductCommand.apply(sellProduct)(Some(product))
-            (txId, eId) <- eventStore saveEvent(productSold, id)
-          } yield Ok(Json.obj("txId" -> txId, "eId" -> eId))
+            txId <- eventStore saveEvent(productSold, productId)
+          } yield Ok(Json.obj("txId" -> txId))
       }
     )
   }

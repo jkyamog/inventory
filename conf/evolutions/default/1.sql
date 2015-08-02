@@ -2,13 +2,11 @@
 
 CREATE TABLE "events" (
   "tx_id" SERIAL PRIMARY KEY,
-  "entity_id" BIGINT,
+  "entity_id" UUID,
   "event" TEXT);
 
-CREATE SEQUENCE "events_entity_id_seq";
-
 CREATE TABLE "products" (
-  "id" BIGINT PRIMARY KEY,
+  "id" UUID PRIMARY KEY,
   "name" TEXT,
   "quantity" INT
 )
@@ -16,7 +14,5 @@ CREATE TABLE "products" (
 # --- !Downs
 
 DROP TABLE "products";
-
-DROP SEQUENCE "events_entity_id_seq";
 
 DROP TABLE "events";

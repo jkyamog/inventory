@@ -1,5 +1,7 @@
 package inventory.domain
 
+import java.util.UUID
+
 import inventory.events.{ProductSold, ProductCreated}
 import inventory.storage.TestEventStore
 
@@ -12,16 +14,17 @@ class AggregateRootSpec extends PlaySpecification {
     "get an entity by id and use the correct type through type class implicit" in {
       import ProductHelper.productEvents
 
-      val create = ProductCreated("test", None, 5, None, 2.0, None)
+      val id = UUID.randomUUID()
+      val create = ProductCreated(id, "test", None, 5, None, 2.0, None)
       val eventStore = new TestEventStore
 
-      val (product, eId) = await(for {
-        (txId, eId) <- eventStore saveEvent create
-        _ <- eventStore.saveEvent(ProductSold(eId, 2), eId)
-        product <- AggregateRoot.getById(eId)(eventStore)
-      } yield (product, eId))
+      val product = await(for {
+        txId <- eventStore saveEvent (create, id)
+        _ <- eventStore.saveEvent(ProductSold(id, 2), id)
+        product <- AggregateRoot.getById(id)(eventStore)
+      } yield product)
 
-      product must beEqualTo(Product(eId, "test", 3))
+      product must beEqualTo(Product(id, "test", 3))
     }
   }
 }

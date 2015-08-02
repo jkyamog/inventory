@@ -1,5 +1,7 @@
 package inventory.domain
 
+import java.util.UUID
+
 import inventory.events.{FailedToApply, Event}
 import inventory.storage.EventStore
 
@@ -33,7 +35,7 @@ object AggregateRoot {
     }
   }
 
-  def getById[T : EventApply](entityId: Long)(eventStore: EventStore): Future[T] = {
+  def getById[T : EventApply](entityId: UUID)(eventStore: EventStore): Future[T] = {
     eventStore.getEvents(entityId).flatMap{ event =>
       Future fromTry loadFromHistory(event)
     }

@@ -10,5 +10,5 @@ GET         /assets/*file        controllers.Assets.versioned(path="/public", fi
 
 # Product
 POST        /products            inventory.controllers.Products.create
-GET         /products/:id        inventory.controllers.Products.get(id: Long)
-POST        /products/:id/sell   inventory.controllers.Products.sell(id: Long)
+GET         /products/:id        inventory.controllers.Products.get(id: String)
+POST        /products/:id/sell   inventory.controllers.Products.sell(id: String)

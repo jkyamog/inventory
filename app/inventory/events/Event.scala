@@ -1,18 +1,21 @@
 package inventory.events
 
+import java.util.UUID
+
 sealed trait Event
 
 case class ProductSold(
-  productId: Long,
+  productId: UUID,
   quantity: Int
 ) extends Event
 
 case class ProductRestocked(
-  productId: Long,
+  productId: UUID,
   quantity: Int
 ) extends Event
 
 case class ProductCreated(
+  productId: UUID,
   name: String,
   description: Option[String],
   quantity: Int,
@@ -22,7 +25,7 @@ case class ProductCreated(
 ) extends Event
 
 case class ProductArchived(
-  productId: Long
+  productId: UUID
 ) extends Event
 
 case class ReorderNotification(
