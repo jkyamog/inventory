@@ -13,9 +13,9 @@ class ProductSpec extends PlaySpecification {
       val product = Product(id, "test product", 3)
       val sell = ProductSold(id, 2)
 
-      val soldProduct = Some((sell, Some(product))) collect productEvents
+      val soldProduct = productEvents(sell)(Some(product))
 
-      soldProduct must beSome(Product(id, "test product", 1))
+      soldProduct must beSuccessfulTry(Product(id, "test product", 1))
     }
 
     "increase it's quantity when its restocked" in {
@@ -23,9 +23,9 @@ class ProductSpec extends PlaySpecification {
       val product = Product(id, "test product", 3)
       val restock = ProductRestocked(id, 2)
 
-      val newStockProduct = Some((restock, Some(product))) collect productEvents
+      val newStockProduct = productEvents(restock)(Some(product))
 
-      newStockProduct must beSome(Product(id, "test product", 5))
+      newStockProduct must beSuccessfulTry(Product(id, "test product", 5))
     }
 
     "not sell if the quantity is lower than sold" in {
@@ -33,9 +33,9 @@ class ProductSpec extends PlaySpecification {
       val product = Product(id, "test product", 2)
       val sell = ProductSold(id, 3)
 
-      val soldProduct = Some((sell, Some(product))) collect productEvents
+      val soldProduct = productEvents(sell)(Some(product))
 
-      soldProduct must beNone//(FailedToSell)
+      soldProduct must beFailedTry//(FailedToSell)
 //        case FailedToSell(event) => event must beEqualTo(sell)
 //      }//beASuccessfulTry(Product(1l, "test product", 3))
 

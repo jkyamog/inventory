@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
-import inventory.storage.{EventTx, SqlEventStore}
+import inventory.storage.SqlEventStore
 
 import play.api.{Logger, Play}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
@@ -14,6 +14,8 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import slick.driver.JdbcProfile
 
 import inventory.domain.{ProductHelper, Product}
+
+import scala.util.{Failure, Success}
 
 object Products extends HasDatabaseConfig[JdbcProfile] {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
@@ -45,13 +47,18 @@ object Products extends HasDatabaseConfig[JdbcProfile] {
         if (productsResult.nonEmpty) {
           val update = for {p <- products if p.id === eventTx.entityId} yield (p.name, p.quantity)
           val product = productsResult.head
-          update += (product.name, product.quantity)
+          Success(update += (product.name, product.quantity))
         } else {
-          val product = ProductHelper.productEvents(eventTx.event, None)
-          products += product.copy(id = eventTx.entityId)
+          ProductHelper.productEvents(eventTx.event)(None).map { product =>
+            products += product.copy(id = eventTx.entityId)
+          }
+
         }
 
-      db.run(upsert)
+      upsert match {
+        case Success(dbOperation) => db.run(dbOperation)
+        case Failure(error) => Logger.error("unable to apply eventTx: " + eventTx, error)
+      }
     }
   })
 

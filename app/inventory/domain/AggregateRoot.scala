@@ -11,26 +11,19 @@ import scala.concurrent.Future
 import scala.util.{Success, Failure, Try}
 
 
-trait EventApply[T] extends PartialFunction[(Event, Option[T]), T] {
-  def apply(ep: (Event, Option[T])): T // TODO: should this be Try[T]
+trait EventApply[T] {
+  def apply(event: Event)(entity: Option[T]): Try[T]
 }
 
 
 object AggregateRoot {
 
-  def apply[T](event: Event)(entity: Option[T])(eventApply: EventApply[T]): Try[T] = {
-    if (eventApply.isDefinedAt((event, entity)))
-      Success(eventApply((event, entity)))
-    else
-      Failure(new FailedToApply(event))
-  }
-
   def loadFromHistory[T : EventApply](history: Iterable[Event]): Try[T] = {
     val applyEvent = implicitly[EventApply[T]]
     history.headOption match {
       case Some(firstEvent) =>
-        val initialEntity = applyEvent(firstEvent, None)
-        Success(history.tail.foldLeft(initialEntity)((entity, event) => applyEvent(event, Some(entity))))
+        val initialEntity = applyEvent(firstEvent)(None)
+        history.tail.foldLeft(initialEntity)((entity, event) => entity.flatMap(e =>applyEvent(event)(Some(e))))
       case None => Failure(new RuntimeException("empty history, nothing to load"))
     }
   }

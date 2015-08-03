@@ -6,22 +6,18 @@ import inventory.commands._
 import inventory.events._
 import play.api.Logger
 
+import scala.util.{Failure, Success}
+
 case class Product(id: UUID, name: String, quantity: Int)
 
 class ProductEvents extends EventApply[Product] {
-  override def apply(ep: (Event, Option[Product])) = ep match {
+  override def apply(event: Event)(entity: Option[Product]) = (event, entity) match {
     case (ProductCreated(productId, name, description, quantity, reorderPoint, price, packaging), None) =>
-      Product(productId, name, quantity)
+      Success(Product(productId, name, quantity))
     case (event: ProductSold, Some(product)) if event.quantity <= product.quantity =>
-      product.copy(quantity = product.quantity - event.quantity)
-  }
-
-  override def isDefinedAt(ep: (Event, Option[Product])): Boolean = ep match {
-    case (ProductCreated(productId, name, description, quantity, reorderPoint, price, packaging), None) =>
-      true
-    case (event: ProductSold, Some(product)) if event.quantity <= product.quantity =>
-      true
-    case _ => false
+      Success(product.copy(quantity = product.quantity - event.quantity))
+    case _ =>
+      Failure(new FailedToApply(event))
   }
 }
 
