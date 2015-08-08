@@ -7,7 +7,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 
 import inventory.events._
-import inventory.storage.SqlEventStore
+import inventory.storage.{EventTx, SqlEventStore}
 import inventory.domain.{ItemHelper, Item}
 
 import play.api.{Logger, Play}
@@ -26,24 +26,17 @@ object ReadDB extends HasDatabaseConfig[JdbcProfile] {
 
   class Items(tag: Tag) extends Table[Item](tag, "items") {
     def id = column[UUID]("id", O.PrimaryKey)
+
     def name = column[String]("name")
+
     def quantity = column[Int]("quantity")
 
-    def * = (id, name, quantity) <> (Item.tupled, Item.unapply _)
+    def * = (id, name, quantity) <>(Item.tupled, Item.unapply _)
   }
 
   val items = TableQuery[Items]
 
-  implicit val system = ActorSystem("event-store")
-  import system.dispatcher
-
-  implicit val materializer = ActorMaterializer()
-  def init {
-    Logger.debug("init") // TODO: need to figure out why sink does not run w/o object being directly referenced
-  }
-  SqlEventStore.source.runWith(Sink.foreach{ eventTx =>
-    Logger.debug("got event from eventstore " + eventTx)
-
+  def handle(eventTx: EventTx) = {
     eventTx.event match {
 
       case _: ItemCreated | _: ItemSold | _: ItemRestocked | _: ItemArchived =>
@@ -68,6 +61,22 @@ object ReadDB extends HasDatabaseConfig[JdbcProfile] {
 
       case _ => Logger.debug("discarding: " + eventTx)
     }
+  }
+}
+
+object EventStoreSubscriber {
+
+  implicit val system = ActorSystem("event-store")
+  import system.dispatcher
+
+  implicit val materializer = ActorMaterializer()
+  def init {
+    Logger.debug("init") // TODO: need to figure out why sink does not run w/o object being directly referenced
+  }
+  SqlEventStore.source.runWith(Sink.foreach{ eventTx =>
+    Logger.debug("got event from eventstore " + eventTx)
+
+    ReadDB.handle(eventTx)
   })
 
 }

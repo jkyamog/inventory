@@ -17,7 +17,7 @@ import scala.util.Success
 
 class Items extends ItemController {
   val eventStore = SqlEventStore
-  inventory.reads.ReadDB.init
+  inventory.reads.EventStoreSubscriber.init
 }
 
 trait ItemController extends Controller {

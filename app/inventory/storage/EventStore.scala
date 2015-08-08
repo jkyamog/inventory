@@ -27,12 +27,7 @@ trait EventStore {
 
   val (actorRef, publisher) =  Source.actorRef[EventTx](BUFFER_SIZE, OverflowStrategy.fail).toMat(Sink.publisher)(Keep.both).run()
 
-  val source = {
-    Source(publisher).map{ eventTx =>
-      Logger.debug("event passing through " + eventTx)
-      eventTx
-    }
-  }
+  val source = Source(publisher)
 
   def saveEvent(event: Event, entityId: UUID): Future[Long] = {
     val txId = for {

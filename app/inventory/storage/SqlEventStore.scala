@@ -55,21 +55,11 @@ object SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
   }
 
   def allEvents = {
-    val eventsFromDb = db.stream(
+    db.stream(
       events.sortBy(_.txId).result
-    )
-
-    eventsFromDb.mapResult { eventData =>
+    ).mapResult { eventData =>
       Json.parse(eventData.event)
     }
-
-//    eventsFromDb.map { events =>
-//      val jsons = events.map(e => Json.parse(e.event))
-//      jsons.map{ json =>
-//        Json.fromJson[Event](json).get
-//      }
-//    }
-
   }
 
 }
