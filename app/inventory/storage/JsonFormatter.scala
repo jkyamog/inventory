@@ -13,38 +13,30 @@ object JsonFormatter {
   implicit val eventFormatter = new Format[Event] {
     def reads(js: JsValue): JsResult[Event] = {
       val eventType = (js \ "type").as[String]
+      val event = (js \ "event").as[JsValue]
+
       eventType match {
         case ITEM_CREATED =>
-          val event = (js \ "event").get
           Json.fromJson[ItemCreated](event)
 
         case ITEM_SOLD =>
-          val event = (js \ "event").get
           Json.fromJson[ItemSold](event)
 
         case SELL_FAILED_NOTIFICATION =>
-          val event = (js \ "event").get
           Json.fromJson[SellFailedNotification](event)
-
       }
     }
 
 
-    def writes(event: Event): JsValue = {
-      event match {
-        case c: ItemCreated =>
-          val json = Json.toJson(c)
-          Json.obj("type" -> ITEM_CREATED, "event" -> json)
+    def writes(event: Event): JsValue = event match {
+      case j: ItemCreated =>
+        Json.obj("type" -> ITEM_CREATED, "event" -> Json.toJson(j))
 
-        case c: ItemSold =>
-          val json = Json.toJson(c)
-          Json.obj("type" -> ITEM_SOLD, "event" -> json)
+      case j: ItemSold =>
+        Json.obj("type" -> ITEM_SOLD, "event" -> Json.toJson(j))
 
-        case c: SellFailedNotification =>
-          val json = Json.toJson(c)
-          Json.obj("type" -> SELL_FAILED_NOTIFICATION, "event" -> json)
-
-      }
+      case j: SellFailedNotification =>
+        Json.obj("type" -> SELL_FAILED_NOTIFICATION, "event" -> Json.toJson(j))
     }
   }
 
