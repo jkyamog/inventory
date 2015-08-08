@@ -24,9 +24,15 @@ class ProductEvents extends EventApply[Product] {
 object ProductCommand extends CommandApply[Product] {
   override def apply(command: Command)(product: Option[Product]) = (command, product) match {
     case (CreateProduct(name, description, quantity, reorderPoint, price, packaging), None) =>
-      ProductCreated(UUID.randomUUID(), name, description, quantity, reorderPoint, price, packaging)
+      val event = ProductCreated(UUID.randomUUID(), name, description, quantity, reorderPoint, price, packaging)
+      Logger.debug("event created " + event)
+      Success(event)
     case (SellProduct(productId, quantity), Some(product)) if quantity <= product.quantity =>
-      ProductSold(productId, quantity)
+      Success(ProductSold(productId, quantity))
+    case _ =>
+      Logger.error("failed to apply " + command)
+      Failure(new FailedToApply[Command](command))
+
   }
 }
 

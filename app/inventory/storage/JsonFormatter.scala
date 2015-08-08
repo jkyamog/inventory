@@ -1,12 +1,12 @@
 package inventory.storage
 
-import inventory.events.{ProductSold, ProductCreated, Event}
+import inventory.events.{SellFailedNotification, ProductSold, ProductCreated, Event}
 import play.api.libs.json.{Json, JsResult, JsValue, Format}
 
 object JsonFormatter {
 
   implicit val eventFormatter = new Format[Event] {
-    def reads(js: JsValue): JsResult[Event] = {
+    def reads(js: JsValue): JsResult[Event] = { // TODO refactor remove boiler plate
       val eventType = (js \ "type").as[String]
       eventType match {
         case "CreateProduct" =>
@@ -14,11 +14,17 @@ object JsonFormatter {
 
           val event = (js \ "event").get
           Json.fromJson[ProductCreated](event)
-        case "SellProduct" =>
+        case "ProductSold" =>
           implicit val sellProductFormatter = Json.format[ProductSold]
 
           val event = (js \ "event").get
           Json.fromJson[ProductSold](event)
+        case "SellFailedNotification" =>
+          implicit val formatter = Json.format[SellFailedNotification]
+
+          val event = (js \ "event").get
+          Json.fromJson[SellFailedNotification](event)
+
       }
     }
 
@@ -36,7 +42,14 @@ object JsonFormatter {
 
           val json = Json.toJson(c)
 
-          Json.obj("type" -> "SellProduct", "event" -> json)
+          Json.obj("type" -> "ProductSold", "event" -> json)
+        case c: SellFailedNotification =>
+          implicit val formatter = Json.format[SellFailedNotification]
+
+          val json = Json.toJson(c)
+
+          Json.obj("type" -> "SellFailedNotification", "event" -> json)
+
       }
     }
   }

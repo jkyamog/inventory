@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
+import inventory.events._
 import inventory.storage.SqlEventStore
 
 import play.api.{Logger, Play}
@@ -40,25 +41,31 @@ object Products extends HasDatabaseConfig[JdbcProfile] {
     Logger.debug("init products") // TODO: need to figure out why sink does not run w/o object being directly referenced
   }
   SqlEventStore.source.runWith(Sink.foreach{ eventTx => //.runForeach{ eventTx =>
-    Logger.debug("got event from eventstore")
+    Logger.debug("got event from eventstore " + eventTx)
 
-    db.run(products.filter(_.id === eventTx.entityId).result).map { productsResult =>
-      val upsert =
-        if (productsResult.nonEmpty) {
-          val update = for {p <- products if p.id === eventTx.entityId} yield (p.name, p.quantity)
-          val product = productsResult.head
-          Success(update += (product.name, product.quantity))
-        } else {
-          ProductHelper.productEvents(eventTx.event)(None).map { product =>
-            products += product.copy(id = eventTx.entityId)
+    eventTx.event match {
+
+      case _: ProductCreated | _: ProductSold | _: ProductRestocked | _: ProductArchived =>
+        db.run(products.filter(_.id === eventTx.entityId).result).map { productsResult =>
+          val upsert =
+            if (productsResult.nonEmpty) {
+              val update = for {p <- products if p.id === eventTx.entityId} yield (p.name, p.quantity)
+              val product = productsResult.head
+              Success(update +=(product.name, product.quantity))
+            } else {
+              ProductHelper.productEvents(eventTx.event)(None).map { product =>
+                products += product.copy(id = eventTx.entityId)
+              }
+
+            }
+
+          upsert match {
+            case Success(dbOperation) => db.run(dbOperation)
+            case Failure(error) => Logger.error("unable to apply eventTx: " + eventTx, error)
           }
-
         }
 
-      upsert match {
-        case Success(dbOperation) => db.run(dbOperation)
-        case Failure(error) => Logger.error("unable to apply eventTx: " + eventTx, error)
-      }
+      case _ => Logger.debug("discarding: " + eventTx)
     }
   })
 

@@ -35,12 +35,17 @@ trait ProductController extends Controller {
       },
       createProduct => {
         ProductCommand(createProduct)(None) match {
-          case productCreated: ProductCreated =>
+          case Success(productCreated: ProductCreated) =>
             for {
               txId <- eventStore.saveEvent(productCreated, productCreated.productId)
             } yield Ok(Json.obj("txId" -> txId, "eId" -> productCreated.productId))
 
-          case _ => Future.successful(InternalServerError)
+          case Success(event) =>
+            Logger.error("unexpected event" + event)
+            Future.failed(new RuntimeException("unexpected event" + event))
+          case error =>
+            Logger.debug("error: " + error)
+            Future.successful(InternalServerError)
         }
 
       }
@@ -64,11 +69,22 @@ trait ProductController extends Controller {
       sellProduct => {
         import ProductHelper.productEvents
 
+        def sell(product: Product) = {
+
+          Future.fromTry(ProductCommand(sellProduct)(Some(product))).map{
+              case soldProduct => (product.id, soldProduct)
+            }.recover{
+              case FailedToApply(command: SellProduct) =>
+              Logger.debug("recovering from failed " + command)
+              (UUID.randomUUID(), SellFailedNotification(product.id, sellProduct.quantity))
+            }
+        }
+
         val productId = UUID.fromString(id)
           for {
             product <- AggregateRoot.getById(productId)(eventStore)
-            productSold = ProductCommand.apply(sellProduct)(Some(product))
-            txId <- eventStore saveEvent(productSold, productId)
+            (eId, productSold) <- sell(product)
+            txId <- eventStore saveEvent(productSold, eId)
           } yield Ok(Json.obj("txId" -> txId))
       }
     )

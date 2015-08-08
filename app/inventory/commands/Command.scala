@@ -4,6 +4,8 @@ import java.util.UUID
 
 import inventory.events.Event
 
+import scala.util.Try
+
 sealed trait Command
 
 case class SellProduct(
@@ -30,5 +32,5 @@ case class ArchiveProduct(
 ) extends Command
 
 trait CommandApply[T] {
-  def apply(command: Command)(entity: Option[T]): Event
+  def apply(command: Command)(entity: Option[T]): Try[Event]
 }

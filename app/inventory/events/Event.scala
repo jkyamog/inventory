@@ -37,14 +37,14 @@ case class DismissNotification(
 ) extends Event
 
 case class SellFailedNotification(
-  productId: Long,
+  productId: UUID,
   quantityAttempted: Int
 ) extends Event
 
-class FailedToApply(val event: Event) extends RuntimeException
+class FailedToApply[T](val t: T) extends RuntimeException
 
 object FailedToApply {
-  def unapply(ue: FailedToApply): Option[Event] = {
-    Some(ue.event)
+  def unapply[T](fta: FailedToApply[T]): Option[T] = {
+    Some(fta.t)
   }
 }
