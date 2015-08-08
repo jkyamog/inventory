@@ -4,18 +4,18 @@ import java.util.UUID
 
 sealed trait Event
 
-case class ProductSold(
-  productId: UUID,
+case class ItemSold(
+  id: UUID,
   quantity: Int
 ) extends Event
 
-case class ProductRestocked(
-  productId: UUID,
+case class ItemRestocked(
+  id: UUID,
   quantity: Int
 ) extends Event
 
-case class ProductCreated(
-  productId: UUID,
+case class ItemCreated(
+  id: UUID,
   name: String,
   description: Option[String],
   quantity: Int,
@@ -24,20 +24,20 @@ case class ProductCreated(
   packaging: Option[String]
 ) extends Event
 
-case class ProductArchived(
-  productId: UUID
+case class ItemArchived(
+  id: UUID
 ) extends Event
 
 case class ReorderNotification(
-  productId: Long
+  id: UUID
 ) extends Event
 
 case class DismissNotification(
-  notificationId: Long
+  id: UUID
 ) extends Event
 
 case class SellFailedNotification(
-  productId: UUID,
+  id: UUID,
   quantityAttempted: Int
 ) extends Event
 

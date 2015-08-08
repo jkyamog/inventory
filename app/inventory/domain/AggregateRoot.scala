@@ -11,15 +11,15 @@ import scala.concurrent.Future
 import scala.util.{Success, Failure, Try}
 
 
-trait EventApply[T] {
+trait EventHandler[T] {
   def apply(event: Event)(entity: Option[T]): Try[T]
 }
 
 
 object AggregateRoot {
 
-  def loadFromHistory[T : EventApply](history: Iterable[Event]): Try[T] = {
-    val applyEvent = implicitly[EventApply[T]]
+  def loadFromHistory[T : EventHandler](history: Iterable[Event]): Try[T] = {
+    val applyEvent = implicitly[EventHandler[T]]
     history.headOption match {
       case Some(firstEvent) =>
         val initialEntity = applyEvent(firstEvent)(None)
@@ -28,7 +28,7 @@ object AggregateRoot {
     }
   }
 
-  def getById[T : EventApply](entityId: UUID)(eventStore: EventStore): Future[T] = {
+  def getById[T : EventHandler](entityId: UUID)(eventStore: EventStore): Future[T] = {
     eventStore.getEvents(entityId).flatMap{ event =>
       Future fromTry loadFromHistory(event)
     }

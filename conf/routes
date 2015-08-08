@@ -9,6 +9,6 @@ GET         /                    controllers.Application.index
 GET         /assets/*file        controllers.Assets.versioned(path="/public", file: Asset)
 
 # Product
-POST        /products            inventory.controllers.Products.create
-GET         /products/:id        inventory.controllers.Products.get(id: String)
-POST        /products/:id/sell   inventory.controllers.Products.sell(id: String)
+POST        /items               inventory.controllers.Items.create
+GET         /items/:id           inventory.controllers.Items.get(id: String)
+POST        /items/:id/sell      inventory.controllers.Items.sell(id: String)

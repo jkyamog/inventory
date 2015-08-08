@@ -5,7 +5,7 @@ import java.util.UUID
 import inventory.commands._
 import inventory.events._
 import inventory.storage.{SqlEventStore, EventStore}
-import inventory.domain.{ProductCommand, ProductHelper, AggregateRoot, Product}
+import inventory.domain.{ItemCommandHandler, ItemHelper, AggregateRoot, Item}
 import play.api.Logger
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -15,30 +15,28 @@ import play.api.mvc._
 import scala.concurrent.Future
 import scala.util.Success
 
-class Products extends ProductController {
+class Items extends ItemController {
   val eventStore = SqlEventStore
-  inventory.reads.Products.init
+  inventory.reads.ReadDB.init
 }
 
-trait ProductController extends Controller {
+trait ItemController extends Controller {
 
-  implicit val productFormatter = Json.format[Product]
-  implicit val productCreateFormatter = Json.format[CreateProduct]
-  implicit val sellProductFormatter = Json.format[SellProduct]
+  import JsonHelpers._
 
   val eventStore: EventStore
 
   def create = Action.async(parse.json) { request =>
-    request.body.validate[CreateProduct].fold (
+    request.body.validate[CreateItem].fold (
       errors => {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
-      createProduct => {
-        ProductCommand(createProduct)(None) match {
-          case Success(productCreated: ProductCreated) =>
+      createItem => {
+        ItemCommandHandler(createItem)(None) match {
+          case Success(itemCreated: ItemCreated) =>
             for {
-              txId <- eventStore.saveEvent(productCreated, productCreated.productId)
-            } yield Ok(Json.obj("txId" -> txId, "eId" -> productCreated.productId))
+              txId <- eventStore.saveEvent(itemCreated, itemCreated.id)
+            } yield Ok(Json.obj("txId" -> txId, "eId" -> itemCreated.id))
 
           case Success(event) =>
             Logger.error("unexpected event" + event)
@@ -53,26 +51,26 @@ trait ProductController extends Controller {
   }
 
   def get(id: String) = Action.async { request =>
-    import ProductHelper.productEvents
+    import ItemHelper.itemEventHandler
 
-    val productId = UUID.fromString(id)
-    AggregateRoot.getById(productId)(eventStore).map { product =>
-      Ok(Json.toJson(product))
+    val uuid = UUID.fromString(id)
+    AggregateRoot.getById(uuid)(eventStore).map { item =>
+      Ok(Json.toJson(item))
     }
   }
 
   def sell(id: String) = Action.async(parse.json) { request =>
-    request.body.validate[SellProduct].fold (
+    request.body.validate[SellItem].fold (
       errors => {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
       sell => {
-        import ProductHelper._
+        import ItemHelper._
 
-        val productId = UUID.fromString(id)
+        val uuid = UUID.fromString(id)
           for {
-            product <- AggregateRoot.getById(productId)(eventStore)
-            (eId, event) <- tryTo(sell)(Some(product))
+            item <- AggregateRoot.getById(uuid)(eventStore)
+            (eId, event) <- tryTo(sell)(Some(item))
             txId <- eventStore saveEvent(event, eId)
           } yield Ok(Json.obj("txId" -> txId))
       }

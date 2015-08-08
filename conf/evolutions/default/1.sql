@@ -5,7 +5,7 @@ CREATE TABLE "events" (
   "entity_id" UUID,
   "event" TEXT);
 
-CREATE TABLE "products" (
+CREATE TABLE "items" (
   "id" UUID PRIMARY KEY,
   "name" TEXT,
   "quantity" INT
@@ -13,6 +13,6 @@ CREATE TABLE "products" (
 
 # --- !Downs
 
-DROP TABLE "products";
+DROP TABLE "items";
 
 DROP TABLE "events";

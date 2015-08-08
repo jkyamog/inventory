@@ -1,6 +1,6 @@
 package inventory.storage
 
-import inventory.events.{SellFailedNotification, ProductSold, ProductCreated, Event}
+import inventory.events.{SellFailedNotification, ItemSold, ItemCreated, Event}
 import play.api.libs.json.{Json, JsResult, JsValue, Format}
 
 object JsonFormatter {
@@ -9,16 +9,16 @@ object JsonFormatter {
     def reads(js: JsValue): JsResult[Event] = { // TODO refactor remove boiler plate
       val eventType = (js \ "type").as[String]
       eventType match {
-        case "CreateProduct" =>
-          implicit val productCreateFormatter = Json.format[ProductCreated]
+        case "ItemCreated" =>
+          implicit val productCreateFormatter = Json.format[ItemCreated]
 
           val event = (js \ "event").get
-          Json.fromJson[ProductCreated](event)
-        case "ProductSold" =>
-          implicit val sellProductFormatter = Json.format[ProductSold]
+          Json.fromJson[ItemCreated](event)
+        case "ItemSold" =>
+          implicit val sellProductFormatter = Json.format[ItemSold]
 
           val event = (js \ "event").get
-          Json.fromJson[ProductSold](event)
+          Json.fromJson[ItemSold](event)
         case "SellFailedNotification" =>
           implicit val formatter = Json.format[SellFailedNotification]
 
@@ -31,18 +31,18 @@ object JsonFormatter {
 
     def writes(event: Event): JsValue = {
       event match {
-        case c: ProductCreated =>
-          implicit val productCreateFormatter = Json.format[ProductCreated]
+        case c: ItemCreated =>
+          implicit val productCreateFormatter = Json.format[ItemCreated]
 
           val json = Json.toJson(c)
 
-          Json.obj("type" -> "CreateProduct", "event" -> json)
-        case c: ProductSold =>
-          implicit val sellProductFormatter = Json.format[ProductSold]
+          Json.obj("type" -> "ItemCreated", "event" -> json)
+        case c: ItemSold =>
+          implicit val sellProductFormatter = Json.format[ItemSold]
 
           val json = Json.toJson(c)
 
-          Json.obj("type" -> "ProductSold", "event" -> json)
+          Json.obj("type" -> "ItemSold", "event" -> json)
         case c: SellFailedNotification =>
           implicit val formatter = Json.format[SellFailedNotification]
 

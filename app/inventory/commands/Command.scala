@@ -8,17 +8,17 @@ import scala.util.Try
 
 sealed trait Command
 
-case class SellProduct(
-  productId: UUID,
+case class SellItem(
+  id: UUID,
   quantity: Int
 ) extends Command
 
-case class RestockProduct(
-  productId: UUID,
+case class RestockItem(
+  id: UUID,
   quantity: Int
 ) extends Command
 
-case class CreateProduct(
+case class CreateItem(
   name: String,
   description: Option[String],
   quantity: Int,
@@ -27,10 +27,10 @@ case class CreateProduct(
   packaging: Option[String]
 ) extends Command
 
-case class ArchiveProduct(
-  productId: UUID
+case class ArchiveItem(
+  id: UUID
 ) extends Command
 
-trait CommandApply[T] {
+trait CommandHandler[T] {
   def apply(command: Command)(entity: Option[T]): Try[Event]
 }
