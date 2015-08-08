@@ -13,7 +13,7 @@ import play.api.libs.json._
 import play.api.mvc._
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.util.Success
 
 class Products extends ProductController {
   val eventStore = SqlEventStore
@@ -66,25 +66,14 @@ trait ProductController extends Controller {
       errors => {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
-      sellProduct => {
-        import ProductHelper.productEvents
-
-        def sell(product: Product) = {
-
-          Future.fromTry(ProductCommand(sellProduct)(Some(product))).map{
-              case soldProduct => (product.id, soldProduct)
-            }.recover{
-              case FailedToApply(command: SellProduct) =>
-              Logger.debug("recovering from failed " + command)
-              (UUID.randomUUID(), SellFailedNotification(product.id, sellProduct.quantity))
-            }
-        }
+      sell => {
+        import ProductHelper._
 
         val productId = UUID.fromString(id)
           for {
             product <- AggregateRoot.getById(productId)(eventStore)
-            (eId, productSold) <- sell(product)
-            txId <- eventStore saveEvent(productSold, eId)
+            (eId, event) <- tryTo(sell)(Some(product))
+            txId <- eventStore saveEvent(event, eId)
           } yield Ok(Json.obj("txId" -> txId))
       }
     )

@@ -4,9 +4,13 @@ import java.util.UUID
 
 import inventory.commands._
 import inventory.events._
-import play.api.Logger
 
+import play.api.Logger
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
+
 
 case class Product(id: UUID, name: String, quantity: Int)
 
@@ -38,4 +42,17 @@ object ProductCommand extends CommandApply[Product] {
 
 object ProductHelper {
   implicit val productEvents = new ProductEvents
+
+  def tryTo: SellProduct => Some[Product] => Future[(UUID, Event)] = { sellProduct => someProduct => //{ sellProduct: SellProduct => someProduct: Some[Product] =>
+
+    Future.fromTry(ProductCommand(sellProduct)(someProduct)).map{
+      case soldProduct => (someProduct.get.id, soldProduct)
+    }.recover{
+      case FailedToApply(command: SellProduct) =>
+        Logger.debug("recovering from failed " + command)
+        (UUID.randomUUID(), SellFailedNotification(someProduct.get.id, sellProduct.quantity))
+    }
+  }
+
+
 }

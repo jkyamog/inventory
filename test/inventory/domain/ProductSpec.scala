@@ -2,8 +2,9 @@ package inventory.domain
 
 import java.util.UUID
 
+import inventory.commands.SellProduct
 import inventory.domain.ProductHelper.productEvents
-import inventory.events.{ProductRestocked, ProductSold}
+import inventory.events._
 import play.api.test.PlaySpecification
 
 class ProductSpec extends PlaySpecification {
@@ -28,17 +29,24 @@ class ProductSpec extends PlaySpecification {
       newStockProduct must beSuccessfulTry(Product(id, "test product", 5))
     }
 
-    "not sell if the quantity is lower than sold" in {
+    "not sell if the quantity is lower than sold and fail" in {
       val id = UUID.randomUUID()
       val product = Product(id, "test product", 2)
       val sell = ProductSold(id, 3)
 
       val soldProduct = productEvents(sell)(Some(product))
 
-      soldProduct must beFailedTry//(FailedToSell)
-//        case FailedToSell(event) => event must beEqualTo(sell)
-//      }//beASuccessfulTry(Product(1l, "test product", 3))
+      soldProduct must beFailedTry
+    }
 
+    "when not sold should produce a sell failed notification event" in {
+      val id = UUID.randomUUID()
+      val product = Product(id, "test product", 2)
+      val sell = SellProduct(id, 3)
+
+      val (_, event) = await(ProductHelper.tryTo(sell)(Some(product)))
+
+      event must beLike{ case SellFailedNotification(_, quantity) => quantity must beEqualTo(3) }
     }
   }
 
