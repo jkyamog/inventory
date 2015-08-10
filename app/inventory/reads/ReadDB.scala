@@ -43,14 +43,14 @@ object ReadDB extends HasDatabaseConfig[JdbcProfile] {
         db.run(items.filter(_.id === eventTx.entityId).result).map { dbResult =>
           val upsert =
             if (dbResult.nonEmpty) {
-              val update = for {p <- items if p.id === eventTx.entityId} yield (p.name, p.quantity)
-              val item = dbResult.head
-              Success(update +=(item.name, item.quantity))
+              val existing = for {p <- items if p.id === eventTx.entityId} yield (p.name, p.quantity)
+              ItemHelper.itemEventHandler(eventTx.event)(dbResult.headOption).map { item =>
+                existing.update(item.name, item.quantity)
+              }
             } else {
               ItemHelper.itemEventHandler(eventTx.event)(None).map { item =>
                 items += item.copy(id = eventTx.entityId)
               }
-
             }
 
           upsert match {
