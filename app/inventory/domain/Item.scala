@@ -20,6 +20,8 @@ class ItemEventHandler extends EventHandler[Item] {
       Success(Item(id, name, quantity))
     case (event: ItemSold, Some(item)) if event.quantity <= item.quantity =>
       Success(item.copy(quantity = item.quantity - event.quantity))
+    case (event: ItemRestocked, Some(item)) =>
+      Success(item.copy(quantity = item.quantity + event.quantity))
     case _ =>
       Failure(new FailedToApply(event))
   }
