@@ -12,7 +12,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
-case class Item(id: UUID, name: String, quantity: Int)
+case class Item(id: UUID, name: String, quantity: Int, archived: Option[Boolean] = None)
 
 class ItemEventHandler extends EventHandler[Item] {
   override def apply(event: Event)(entity: Option[Item]) = (event, entity) match {

@@ -8,7 +8,7 @@ import inventory.events._
 import play.api.test.PlaySpecification
 
 class ItemSpec extends PlaySpecification {
-  "Item" should {
+  "ItemEventHandler" should {
     "reduce its quantity when its sold" in {
       val id = UUID.randomUUID()
       val item = Item(id, "test item", 3)
@@ -47,6 +47,16 @@ class ItemSpec extends PlaySpecification {
       val (_, event) = await(ItemHelper.tryTo(sell)(Some(item)))
 
       event must beLike{ case SellFailedNotification(_, quantity) => quantity must beEqualTo(3) }
+    }
+
+    "archive an item" in {
+      val id = UUID.randomUUID()
+      val item = Item(id, "test item", 3)
+      val archive = ItemArchived(id)
+
+      val archiveItem = itemEventHandler(archive)(Some(item))
+
+      archiveItem must beSuccessfulTry(Item(id, "test item", 3, Some(true)))
     }
   }
 
