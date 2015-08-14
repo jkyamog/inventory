@@ -8,7 +8,8 @@ CREATE TABLE "events" (
 CREATE TABLE "items" (
   "id" UUID PRIMARY KEY,
   "name" TEXT,
-  "quantity" INT
+  "quantity" INT,
+  "archived" BOOLEAN
 )
 
 # --- !Downs

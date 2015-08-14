@@ -42,11 +42,11 @@ class ItemSpec extends PlaySpecification {
     "when not sold should produce a sell failed notification event" in {
       val id = UUID.randomUUID()
       val item = Item(id, "test item", 2)
-      val sell = SellItem(id, 3)
+      val sell = SellItem(3)
 
       val (_, event) = await(ItemHelper.tryTo(sell)(Some(item)))
 
-      event must beLike{ case SellFailedNotification(_, quantity) => quantity must beEqualTo(3) }
+      event must beLike{ case SellFailedNotification(_, quantity, _) => quantity must beEqualTo(3) }
     }
 
     "archive an item" in {

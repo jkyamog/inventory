@@ -53,7 +53,9 @@ object ReadDB extends HasDatabaseConfig[JdbcProfile] {
             }
 
           upsert match {
-            case Success(dbOperation) => db.run(dbOperation)
+            case Success(dbOperation) =>
+              Logger.debug(s"dbOperation " + dbOperation.statements.mkString)
+              db.run(dbOperation)
             case Failure(error) => Logger.error("unable to apply eventTx: " + eventTx, error)
           }
         }

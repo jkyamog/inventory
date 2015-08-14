@@ -9,12 +9,10 @@ import scala.util.Try
 sealed trait Command
 
 case class SellItem(
-  id: UUID,
   quantity: Int
 ) extends Command
 
 case class RestockItem(
-  id: UUID,
   quantity: Int
 ) extends Command
 
@@ -28,7 +26,6 @@ case class CreateItem(
 ) extends Command
 
 case class ArchiveItem(
-  id: UUID
 ) extends Command
 
 trait CommandHandler[T] {
