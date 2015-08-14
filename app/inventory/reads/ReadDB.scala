@@ -13,7 +13,9 @@ import inventory.domain.{ItemHelper, Item}
 import play.api.{Logger, Play}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import slick.profile.FixedSqlAction
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 import slick.driver.JdbcProfile
@@ -35,11 +37,10 @@ object ReadDB extends HasDatabaseConfig[JdbcProfile] {
 
   val items = TableQuery[Items]
 
-  def handle(eventTx: EventTx) = {
+  def handle(eventTx: EventTx): Future[FixedSqlAction[Int, NoStream, Effect.Write]] = {
     eventTx.event match {
-
       case _: ItemCreated | _: ItemSold | _: ItemRestocked | _: ItemArchived =>
-        db.run(items.filter(_.id === eventTx.entityId).result).map { dbResult =>
+        db.run(items.filter(_.id === eventTx.entityId).result).flatMap { dbResult =>
           val upsert =
             if (dbResult.nonEmpty) {
               val existing = for {p <- items if p.id === eventTx.entityId} yield (p.name, p.quantity)
@@ -51,16 +52,22 @@ object ReadDB extends HasDatabaseConfig[JdbcProfile] {
                 items += item.copy(id = eventTx.entityId)
               }
             }
-
-          upsert match {
-            case Success(dbOperation) =>
-              Logger.debug(s"dbOperation " + dbOperation.statements.mkString)
-              db.run(dbOperation)
-            case Failure(error) => Logger.error("unable to apply eventTx: " + eventTx, error)
-          }
+          Future.fromTry(upsert)
         }
 
-      case _ => Logger.debug("discarding: " + eventTx)
+      case _ =>
+        Future.failed(new RuntimeException("not handling " + eventTx))
+    }
+  }
+
+  def doDbAction(dbAction: Future[DBIOAction[_, NoStream, Nothing]]) = {
+    dbAction.onComplete {
+      case Success(dbOperation) =>
+        Logger.debug(s"dbOperation " + dbOperation)
+        db.run(dbOperation)
+
+      case Failure(error) =>
+        Logger.error("dboperation failed", error)
     }
   }
 }
@@ -77,7 +84,8 @@ object EventStoreSubscriber {
   SqlEventStore.source.runWith(Sink.foreach{ eventTx =>
     Logger.debug("got event from eventstore " + eventTx)
 
-    ReadDB.handle(eventTx)
+    val dbAction = ReadDB.handle(eventTx)
+    ReadDB.doDbAction(dbAction)
   })
 
 }
