@@ -12,6 +12,7 @@ import play.api.test.Helpers._
  */
 @RunWith(classOf[JUnitRunner])
 class ApplicationSpec extends Specification {
+  args(skipAll = true)
 
   "Application" should {
 
