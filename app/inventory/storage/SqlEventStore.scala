@@ -12,7 +12,7 @@ import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import slick.driver.JdbcProfile
 
 
-object SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
+class SqlEventStore extends EventStore with HasDatabaseConfig[JdbcProfile] {
   val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
 
   import dbConfig.driver.api._

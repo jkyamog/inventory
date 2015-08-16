@@ -4,6 +4,7 @@ import java.util.UUID
 
 import inventory.commands._
 import inventory.events._
+import inventory.reads.EventStoreSubscriber
 import inventory.storage.{SqlEventStore, EventStore}
 import inventory.domain.{ItemCommandHandler, ItemHelper, AggregateRoot, Item}
 import play.api.Logger
@@ -16,8 +17,9 @@ import scala.concurrent.Future
 import scala.util.Success
 
 class Items extends ItemController {
-  val eventStore = SqlEventStore
-  inventory.reads.EventStoreSubscriber.init
+  val eventStore = new SqlEventStore
+  val eventStoreSubscriber = new EventStoreSubscriber
+  eventStoreSubscriber.subscribe(eventStore.source)
 }
 
 trait ItemController extends Controller {
