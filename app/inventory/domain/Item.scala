@@ -12,7 +12,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
-case class Item(id: UUID, name: String, quantity: Int, archived: Option[Boolean] = None)
+case class Item(id: UUID, name: String, quantity: Int, archived: Option[Boolean] = None) extends Entity
 
 class ItemEventHandler extends EventHandler[Item] {
   override def apply(event: Event)(entity: Option[Item]) = (event, entity) match {
@@ -27,7 +27,7 @@ class ItemEventHandler extends EventHandler[Item] {
   }
 }
 
-object ItemCommandHandler extends CommandHandler[Item] {
+class ItemCommandHandler extends CommandHandler[Item] {
   override def apply(command: Command)(itemOpt: Option[Item]) = (command, itemOpt) match {
     case (CreateItem(name, description, quantity, reorderPoint, price, packaging), None) =>
       val event = ItemCreated(UUID.randomUUID(), name, description, quantity, reorderPoint, price, packaging)
@@ -45,16 +45,8 @@ object ItemCommandHandler extends CommandHandler[Item] {
 object ItemHelper {
   implicit val itemEventHandler = new ItemEventHandler
 
-  def tryTo: SellItem => Some[Item] => Future[(UUID, Event)] = { sellItem => someItem =>
+  implicit val itemCommandHandler = new ItemCommandHandler
 
-    Future.fromTry(ItemCommandHandler(sellItem)(someItem)).map{
-      case soldItem => (someItem.get.id, soldItem)
-    }.recover{
-      case FailedToApply(command: SellItem) =>
-        Logger.debug(s"recovering from failed $command on $someItem")
-        (UUID.randomUUID(), SellFailedNotification(someItem.get.id, sellItem.quantity))
-    }
-  }
-
-
+  val notifySellFailed = (sellItem: SellItem, entityOpt: Option[Item]) =>
+    SellFailedNotification(entityOpt.map(_.id).getOrElse(UUID.randomUUID), sellItem.quantity)
 }

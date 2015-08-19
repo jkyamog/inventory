@@ -6,7 +6,7 @@ import inventory.commands._
 import inventory.events._
 import inventory.reads.EventStoreSubscriber
 import inventory.storage.{SqlEventStore, EventStore}
-import inventory.domain.{ItemCommandHandler, ItemHelper, AggregateRoot, Item}
+import inventory.domain.{ItemCommandHandler, ItemHelper, AggregateRoot}
 import play.api.Logger
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -25,6 +25,7 @@ class Items extends ItemController {
 trait ItemController extends Controller {
 
   import JsonHelpers._
+  import AggregateRoot._
 
   val eventStore: EventStore
 
@@ -34,7 +35,8 @@ trait ItemController extends Controller {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
       createItem => {
-        ItemCommandHandler(createItem)(None) match {
+        val itemCommandHandler = new ItemCommandHandler // TODO: collapse this
+        itemCommandHandler(createItem)(None) match {
           case Success(itemCreated: ItemCreated) =>
             for {
               txId <- eventStore.saveEvent(itemCreated, itemCreated.id)
@@ -56,7 +58,7 @@ trait ItemController extends Controller {
     import ItemHelper.itemEventHandler
 
     val uuid = UUID.fromString(id)
-    AggregateRoot.getById(uuid)(eventStore).map { item =>
+    getById(uuid)(eventStore).map { item =>
       Ok(Json.toJson(item))
     }
   }
@@ -71,8 +73,8 @@ trait ItemController extends Controller {
 
         val uuid = UUID.fromString(id)
           for {
-            item <- AggregateRoot.getById(uuid)(eventStore)
-            (eId, event) <- tryTo(sell)(Some(item))
+            item <- getById(uuid)(eventStore)
+            (eId, event) <- tryTo(sell)(Some(item)).or(notifySellFailed)
             txId <- eventStore saveEvent(event, eId)
           } yield Ok(Json.obj("txId" -> txId))
       }

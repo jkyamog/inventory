@@ -1,7 +1,6 @@
 package inventory.commands
 
-import java.util.UUID
-
+import inventory.domain.Entity
 import inventory.events.Event
 
 import scala.util.Try
@@ -28,6 +27,6 @@ case class CreateItem(
 case class ArchiveItem(
 ) extends Command
 
-trait CommandHandler[T] {
+trait CommandHandler[T <: Entity] {
   def apply(command: Command)(entity: Option[T]): Try[Event]
 }
