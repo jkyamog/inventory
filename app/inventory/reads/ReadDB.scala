@@ -50,6 +50,10 @@ class ReadDB extends HasDatabaseConfig[JdbcProfile] {
     items.filter(_.id === id).result.headOption
   )
 
+  def getAll = db.run(
+    items.result
+  )
+
   def handle(eventTx: EventTx) = {
     val f = eventTx.event match {
       case _: ItemCreated =>

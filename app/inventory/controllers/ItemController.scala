@@ -4,7 +4,7 @@ import java.util.UUID
 
 import inventory.commands._
 import inventory.events._
-import inventory.reads.EventStoreSubscriber
+import inventory.reads.{ReadDB, EventStoreSubscriber}
 import inventory.storage.{SqlEventStore, EventStore}
 import inventory.domain.{ItemCommandHandler, ItemHelper, AggregateRoot}
 import play.api.Logger
@@ -19,6 +19,7 @@ import scala.util.Success
 class Items extends ItemController {
   val eventStore = new SqlEventStore
   val eventStoreSubscriber = new EventStoreSubscriber
+  val readDB = new ReadDB
   eventStoreSubscriber.subscribe(eventStore.source)
 }
 
@@ -28,6 +29,8 @@ trait ItemController extends Controller {
   import AggregateRoot._
 
   val eventStore: EventStore
+
+  val readDB: ReadDB
 
   def create = Action.async(parse.json) { request =>
     request.body.validate[CreateItem].fold (
@@ -40,7 +43,7 @@ trait ItemController extends Controller {
           case Success(itemCreated: ItemCreated) =>
             for {
               txId <- eventStore.saveEvent(itemCreated, itemCreated.id)
-            } yield Ok(Json.obj("txId" -> txId, "eId" -> itemCreated.id))
+            } yield Ok(Json.obj("txId" -> txId, "eId" -> itemCreated.id)).withHeaders("content-type" -> "application/json")
 
           case Success(event) =>
             Logger.error("unexpected event" + event)
@@ -79,5 +82,12 @@ trait ItemController extends Controller {
           } yield Ok(Json.obj("txId" -> txId))
       }
     )
+  }
+
+  def getAll = Action.async { request =>
+    readDB.getAll.map { items  =>
+      Ok(Json.toJson(items)(Writes.seq))
+    }
+
   }
 }
