@@ -22,6 +22,8 @@ class ItemEventHandler extends EventHandler[Item] {
       Success(item.copy(quantity = item.quantity - event.quantity))
     case (event: ItemRestocked, Some(item)) =>
       Success(item.copy(quantity = item.quantity + event.quantity))
+    case (event: ItemArchived, Some(item)) =>
+      Success(item.copy(archived = Some(true)))
     case _ =>
       Failure(new FailedToApply(event))
   }
@@ -35,6 +37,8 @@ class ItemCommandHandler extends CommandHandler[Item] {
       Success(event)
     case (SellItem(quantity), Some(item)) if quantity <= item.quantity =>
       Success(ItemSold(item.id, quantity))
+    case (ArchiveItem(), Some(item)) =>
+      Success(ItemArchived(item.id))
     case _ =>
       Logger.error(s"failed to apply $command on $itemOpt")
       Failure(new FailedToApply(command))

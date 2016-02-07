@@ -57,8 +57,10 @@ class ItemSpec extends PlaySpecification {
       val item = Item(id, "test item", 2)
       val sell = SellItem(3)
 
-      val (_, event) = await(ItemHelper.tryTo(sell)(Some(item)))
+      import AggregateRoot._
+      import ItemHelper._
 
+      val (_, event) = await(tryTo(sell)(Some(item)).or(notifySellFailed))
       event must beLike{ case SellFailedNotification(_, quantity, _) => quantity must beEqualTo(3) }
     }
 

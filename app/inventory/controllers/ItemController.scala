@@ -3,10 +3,11 @@ package inventory.controllers
 import java.util.UUID
 
 import inventory.commands._
+import inventory.domain.ItemHelper._
 import inventory.events._
 import inventory.reads.{ReadDB, EventStoreSubscriber}
 import inventory.storage.{SqlEventStore, EventStore}
-import inventory.domain.{ItemCommandHandler, ItemHelper, AggregateRoot}
+import inventory.domain.{ItemHelper, AggregateRoot}
 import play.api.Logger
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -38,8 +39,7 @@ trait ItemController extends Controller {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
       createItem => {
-        val itemCommandHandler = new ItemCommandHandler // TODO: collapse this
-        itemCommandHandler(createItem)(None) match {
+        ItemHelper.itemCommandHandler(createItem)(None) match {  // TODO: collapse this
           case Success(itemCreated: ItemCreated) =>
             for {
               txId <- eventStore.saveEvent(itemCreated, itemCreated.id)
@@ -64,6 +64,17 @@ trait ItemController extends Controller {
     getById(uuid)(eventStore).map { item =>
       Ok(Json.toJson(item))
     }
+  }
+
+  def archive(id: String) = Action.async { request =>
+    import ItemHelper._
+
+    val uuid = UUID.fromString(id)
+    for {
+      item <- getById(uuid)(eventStore)
+      (eId, event) <- tryTo(ArchiveItem())(Some(item)).doCommand
+      txId <- eventStore saveEvent(event, eId)
+    } yield Ok(Json.obj("txId" -> txId))
   }
 
   def sell(id: String) = Action.async(parse.json) { request =>
