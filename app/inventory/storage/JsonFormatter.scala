@@ -1,6 +1,6 @@
 package inventory.storage
 
-import inventory.events.{SellFailedNotification, ItemSold, ItemCreated, Event}
+import inventory.events._
 import play.api.libs.json.{Json, JsResult, JsValue, Format}
 
 object JsonFormatter {
@@ -9,6 +9,7 @@ object JsonFormatter {
   val ITEM_CREATED = ItemCreated.toString
   val ITEM_SOLD = ItemSold.toString
   val SELL_FAILED_NOTIFICATION = SellFailedNotification.toString
+  val ITEM_ARCHIVED = ItemArchived.toString
 
   implicit val eventFormatter = new Format[Event] {
     def reads(js: JsValue): JsResult[Event] = {
@@ -37,6 +38,9 @@ object JsonFormatter {
 
       case j: SellFailedNotification =>
         Json.obj("type" -> SELL_FAILED_NOTIFICATION, "event" -> Json.toJson(j))
+
+      case j: ItemArchived =>
+        Json.obj("type" -> ITEM_ARCHIVED, "event" -> Json.toJson(j))
     }
   }
 

@@ -13,3 +13,4 @@ GET         /items               inventory.controllers.Items.getAll
 POST        /items               inventory.controllers.Items.create
 GET         /items/:id           inventory.controllers.Items.get(id: String)
 POST        /items/:id/sell      inventory.controllers.Items.sell(id: String)
+DELETE      /items/:id           inventory.controllers.Items.archive(id: String)

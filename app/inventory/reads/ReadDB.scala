@@ -46,39 +46,53 @@ class ReadDB extends HasDatabaseConfig[JdbcProfile] {
     db.run(existing.update(item.name, item.quantity))
   }
 
-  def get(id: UUID) = db.run(
-    items.filter(_.id === id).result.headOption
-  )
+  def delete(item: Item) = {
+    db.run(items.filter(_.id === item.id).delete)
+  }
+
+  def get(id: UUID) = {
+    db.run(items.filter(_.id === id).result).flatMap { dbResult =>
+      if (dbResult.nonEmpty && dbResult.size == 1) {
+        Future.successful(dbResult.headOption)
+      } else {
+        Future.failed(new RuntimeException("expected 1 result from db, " + dbResult))
+      }
+    }
+  }
 
   def getAll = db.run(
     items.result
   )
 
   def handle(eventTx: EventTx) = {
-    val f = eventTx.event match {
-      case _: ItemCreated =>
-        Future.fromTry(
-          ItemHelper.itemEventHandler(eventTx.event)(None).map { item =>
-            insert(item.copy(id = eventTx.entityId))
-          })
+    import Future._
+    import ItemHelper._
 
-      case _: ItemSold | _: ItemRestocked | _: ItemArchived =>
-        db.run(items.filter(_.id === eventTx.entityId).result).flatMap { dbResult =>
-          Future.fromTry(
-            if (dbResult.nonEmpty && dbResult.size == 1) {
-              ItemHelper.itemEventHandler(eventTx.event)(dbResult.headOption).map { item =>
-                update(item)
-              }
-            } else {
-              Failure(new RuntimeException("expected 1 result from db, " + dbResult))
-            })
-        }
+    eventTx.event match {
+      case _: ItemCreated =>
+        for {
+          newItem <- fromTry(itemEventHandler(eventTx.event)(None))
+          result <- insert(newItem.copy(id = eventTx.entityId))
+        } yield result
+
+      case _: ItemSold | _: ItemRestocked =>
+        for {
+          existingItem <- get(eventTx.entityId)
+          updatedItem <- fromTry(itemEventHandler(eventTx.event)(existingItem))
+          result <- update(updatedItem)
+        } yield result
+
+      case archived: ItemArchived =>
+        for {
+          existingItem <- get(eventTx.entityId)
+          archivedItem <- fromTry(itemEventHandler(eventTx.event)(existingItem))
+          result <- delete(archivedItem)
+        } yield result
 
       case _ =>
         Future.failed(new RuntimeException("not handling " + eventTx))
     }
 
-    f.flatMap(f => f)
   }
 
 }

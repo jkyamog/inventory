@@ -15,5 +15,6 @@ object JsonHelpers {
   implicit val itemCreatedFormatter = Json.format[ItemCreated]
   implicit val itemSoldFormatter = Json.format[ItemSold]
   implicit val sellFailedNotificationFormatter = Json.format[SellFailedNotification]
+  implicit val itemArchivedFormatter = Json.format[ItemArchived]
 
 }
