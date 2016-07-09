@@ -30,9 +30,8 @@ class ReadDB extends HasDatabaseConfig[JdbcProfile] {
     def id = column[UUID]("id", O.PrimaryKey)
     def name = column[String]("name")
     def quantity = column[Int]("quantity")
-    def archived = column[Option[Boolean]]("archived")
 
-    def * = (id, name, quantity, archived) <>(Item.tupled, Item.unapply _)
+    def * = (id, name, quantity) <>(Item.tupled, Item.unapply _)
   }
 
   val items = TableQuery[Items]

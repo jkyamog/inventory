@@ -46,7 +46,7 @@ class ItemSpec extends PlaySpecification {
 
       val archiveItem = itemEventHandler(archive)(Some(item))
 
-      archiveItem must beSuccessfulTry(Item(id, "test item", 3, Some(true)))
+      archiveItem must beSuccessfulTry(Item(id, "test item", 3))
     }
   }
 

@@ -12,7 +12,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 
-case class Item(id: UUID, name: String, quantity: Int, archived: Option[Boolean] = None) extends Entity
+case class Item(id: UUID, name: String, quantity: Int) extends Entity
 
 class ItemEventHandler extends EventHandler[Item] {
   override def apply(event: Event)(entity: Option[Item]) = (event, entity) match {
@@ -23,7 +23,7 @@ class ItemEventHandler extends EventHandler[Item] {
     case (event: ItemRestocked, Some(item)) =>
       Success(item.copy(quantity = item.quantity + event.quantity))
     case (event: ItemArchived, Some(item)) =>
-      Success(item.copy(archived = Some(true)))
+      Success(item)
     case _ =>
       Failure(new FailedToApply(event))
   }
