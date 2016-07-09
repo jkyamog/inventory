@@ -1,28 +1,25 @@
 package inventory.reads
 
 import java.util.UUID
+import javax.inject.Inject
 
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Source, Sink}
-
+import akka.stream.scaladsl.{Sink, Source}
 import inventory.events._
-import inventory.storage.{EventTx, SqlEventStore}
-import inventory.domain.{ItemHelper, Item}
-
-import play.api.{Logger, Play}
+import inventory.storage.EventTx
+import inventory.domain.{Item, ItemHelper}
+import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import slick.profile.FixedSqlAction
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
-
 import slick.driver.JdbcProfile
 
 
-class ReadDB extends HasDatabaseConfig[JdbcProfile] {
-  val dbConfig = DatabaseConfigProvider.get[JdbcProfile](Play.current)
+class ReadDB @Inject() (dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfig[JdbcProfile] {
+  val dbConfig = dbConfigProvider.get[JdbcProfile]
 
   import dbConfig.driver.api._
 
@@ -96,16 +93,14 @@ class ReadDB extends HasDatabaseConfig[JdbcProfile] {
 
 }
 
-class EventStoreSubscriber {
+class EventStoreSubscriber @Inject() (readDB: ReadDB) {
 
   implicit val system = ActorSystem("event-store")
   import system.dispatcher
 
   implicit val materializer = ActorMaterializer()
 
-  val readDB = new ReadDB
-
-  def subscribe(source: Source[EventTx, Unit]) {
+  def subscribe(source: Source[EventTx, NotUsed]) {
     source.runWith(Sink.foreach{ eventTx =>
       Logger.debug("got event from eventstore " + eventTx)
 

@@ -3,16 +3,18 @@ package inventory.reads
 import java.util.UUID
 
 import inventory.domain.Item
-import inventory.events.{ItemSold, ItemCreated}
+import inventory.events.{ItemCreated, ItemSold}
 import inventory.storage.EventTx
-import play.api.test.{WithApplication, FakeApplication, PlaySpecification}
+import play.api.Application
+import play.api.test.{FakeApplication, PlaySpecification, WithApplication}
 
 
 class ReadDBSpec extends PlaySpecification {
   "ReadDB" should {
 
     "update item when item is sold" in new WithApplication(FakeApplication()) {
-      val readDB = new ReadDB
+      val appToReadDb = Application.instanceCache[ReadDB]
+      val readDB = appToReadDb(app)
 
       val id = UUID.randomUUID
       val item = Item(id, "test", 10)
@@ -30,7 +32,8 @@ class ReadDBSpec extends PlaySpecification {
     }
 
     "insert new items when event is for created item" in new WithApplication(FakeApplication()) {
-      val readDB = new ReadDB
+      val appToReadDb = Application.instanceCache[ReadDB]
+      val readDB = appToReadDb(app)
 
       val id = UUID.randomUUID
       val create = ItemCreated(id, "test", None, 1, None, 2.0, None)

@@ -1,15 +1,14 @@
 package inventory.controllers
 
 import java.util.UUID
+import javax.inject.Inject
 
 import inventory.commands._
-import inventory.domain.ItemHelper._
 import inventory.events._
-import inventory.reads.{ReadDB, EventStoreSubscriber}
-import inventory.storage.{SqlEventStore, EventStore}
-import inventory.domain.{ItemHelper, AggregateRoot}
+import inventory.reads.{EventStoreSubscriber, ReadDB}
+import inventory.storage.{EventStore, SqlEventStore}
+import inventory.domain.{AggregateRoot, ItemHelper}
 import play.api.Logger
-
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc._
@@ -17,10 +16,10 @@ import play.api.mvc._
 import scala.concurrent.Future
 import scala.util.Success
 
-class Items extends ItemController {
-  val eventStore = new SqlEventStore
-  val eventStoreSubscriber = new EventStoreSubscriber
-  val readDB = new ReadDB
+class Items @Inject() (val eventStore: SqlEventStore,
+                       val readDB: ReadDB,
+                       eventStoreSubscriber: EventStoreSubscriber) extends ItemController {
+
   eventStoreSubscriber.subscribe(eventStore.source)
 }
 
