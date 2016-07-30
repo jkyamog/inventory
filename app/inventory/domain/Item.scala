@@ -18,9 +18,9 @@ class ItemEventHandler extends EventHandler[Item] {
   override def apply(event: Event)(entity: Option[Item]) = (event, entity) match {
     case (ItemCreated(id, name, description, quantity, reorderPoint, price, packaging, version), None) =>
       Success(Item(id, name, quantity))
-    case (event: ItemSold, Some(item)) if event.quantity <= item.quantity =>
+    case (event: ItemReduced, Some(item)) if event.quantity <= item.quantity =>
       Success(item.copy(quantity = item.quantity - event.quantity))
-    case (event: ItemRestocked, Some(item)) =>
+    case (event: ItemIncreased, Some(item)) =>
       Success(item.copy(quantity = item.quantity + event.quantity))
     case (event: ItemArchived, Some(item)) =>
       Success(item)
@@ -35,9 +35,9 @@ class ItemCommandHandler extends CommandHandler[Item] {
       val event = ItemCreated(UUID.randomUUID(), name, description, quantity, reorderPoint, price, packaging)
       Logger.debug("event created " + event)
       Success(event)
-    case (SellItem(quantity), Some(item)) if quantity <= item.quantity =>
-      Success(ItemSold(item.id, quantity))
-    case (ArchiveItem(), Some(item)) =>
+    case (ReduceItem(id, quantity), Some(item)) if id == item.id && quantity <= item.quantity =>
+      Success(ItemReduced(item.id, quantity))
+    case (ArchiveItem(id), Some(item)) if id == item.id =>
       Success(ItemArchived(item.id))
     case _ =>
       Logger.error(s"failed to apply $command on $itemOpt")
@@ -51,6 +51,6 @@ object ItemHelper {
 
   implicit val itemCommandHandler = new ItemCommandHandler
 
-  val notifySellFailed = (sellItem: SellItem, entityOpt: Option[Item]) =>
+  val notifySellFailed = (sellItem: ReduceItem, entityOpt: Option[Item]) =>
     SellFailedNotification(entityOpt.map(_.id).getOrElse(UUID.randomUUID), sellItem.quantity)
 }

@@ -3,7 +3,7 @@ package inventory.reads
 import java.util.UUID
 
 import inventory.domain.Item
-import inventory.events.{ItemCreated, ItemSold}
+import inventory.events.{ItemCreated, ItemReduced}
 import inventory.storage.EventTx
 import play.api.Application
 import play.api.test.{FakeApplication, PlaySpecification, WithApplication}
@@ -20,7 +20,7 @@ class ReadDBSpec extends PlaySpecification {
       val item = Item(id, "test", 10)
       await(readDB.insert(item))
 
-      val sold = ItemSold(id, 3)
+      val sold = ItemReduced(id, 3)
       val eventTx = EventTx(1, id, sold)
 
       val updatedNo = await(readDB.handle(eventTx))

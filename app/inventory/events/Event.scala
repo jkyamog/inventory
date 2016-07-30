@@ -6,13 +6,13 @@ sealed trait Event {
   def version: Int
 }
 
-case class ItemSold(
+case class ItemReduced(
   id: UUID,
   quantity: Int,
   val version: Int = 1
 ) extends Event
 
-case class ItemRestocked(
+case class ItemIncreased(
   id: UUID,
   quantity: Int,
   val version: Int = 1

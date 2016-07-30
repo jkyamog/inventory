@@ -7,7 +7,8 @@ object JsonFormatter {
 
   import inventory.controllers.JsonHelpers._
   val ITEM_CREATED = ItemCreated.toString
-  val ITEM_SOLD = ItemSold.toString
+  val ITEM_INCREASED = ItemIncreased.toString
+  val ITEM_REDUCED = ItemReduced.toString
   val SELL_FAILED_NOTIFICATION = SellFailedNotification.toString
   val ITEM_ARCHIVED = ItemArchived.toString
 
@@ -20,8 +21,11 @@ object JsonFormatter {
         case ITEM_CREATED =>
           Json.fromJson[ItemCreated](event)
 
-        case ITEM_SOLD =>
-          Json.fromJson[ItemSold](event)
+        case ITEM_INCREASED =>
+          Json.fromJson[ItemIncreased](event)
+
+        case ITEM_REDUCED =>
+          Json.fromJson[ItemReduced](event)
 
         case SELL_FAILED_NOTIFICATION =>
           Json.fromJson[SellFailedNotification](event)
@@ -33,8 +37,11 @@ object JsonFormatter {
       case j: ItemCreated =>
         Json.obj("type" -> ITEM_CREATED, "event" -> Json.toJson(j))
 
-      case j: ItemSold =>
-        Json.obj("type" -> ITEM_SOLD, "event" -> Json.toJson(j))
+      case j: ItemIncreased =>
+        Json.obj("type" -> ITEM_INCREASED, "event" -> Json.toJson(j))
+
+      case j: ItemReduced =>
+        Json.obj("type" -> ITEM_REDUCED, "event" -> Json.toJson(j))
 
       case j: SellFailedNotification =>
         Json.obj("type" -> SELL_FAILED_NOTIFICATION, "event" -> Json.toJson(j))

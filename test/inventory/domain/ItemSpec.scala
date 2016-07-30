@@ -2,7 +2,7 @@ package inventory.domain
 
 import java.util.UUID
 
-import inventory.commands.SellItem
+import inventory.commands.ReduceItem
 import inventory.domain.ItemHelper.itemEventHandler
 import inventory.events._
 import play.api.test.PlaySpecification
@@ -12,7 +12,7 @@ class ItemSpec extends PlaySpecification {
     "reduce its quantity when its sold" in {
       val id = UUID.randomUUID()
       val item = Item(id, "test item", 3)
-      val sell = ItemSold(id, 2)
+      val sell = ItemReduced(id, 2)
 
       val triedItem = itemEventHandler(sell)(Some(item))
 
@@ -22,7 +22,7 @@ class ItemSpec extends PlaySpecification {
     "increase it's quantity when its restocked" in {
       val id = UUID.randomUUID()
       val item = Item(id, "test item", 3)
-      val restock = ItemRestocked(id, 2)
+      val restock = ItemIncreased(id, 2)
 
       val triedItem = itemEventHandler(restock)(Some(item))
 
@@ -32,7 +32,7 @@ class ItemSpec extends PlaySpecification {
     "not sell if the quantity is lower than sold and fail" in {
       val id = UUID.randomUUID()
       val item = Item(id, "test item", 2)
-      val sell = ItemSold(id, 3)
+      val sell = ItemReduced(id, 3)
 
       val triedItem = itemEventHandler(sell)(Some(item))
 
@@ -55,7 +55,7 @@ class ItemSpec extends PlaySpecification {
     "produce a sell failed notification event, when sell fails" in {
       val id = UUID.randomUUID()
       val item = Item(id, "test item", 2)
-      val sell = SellItem(3)
+      val sell = ReduceItem(id, 3)
 
       import AggregateRoot._
       import ItemHelper._

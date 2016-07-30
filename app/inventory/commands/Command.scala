@@ -1,5 +1,7 @@
 package inventory.commands
 
+import java.util.UUID
+
 import inventory.domain.Entity
 import inventory.events.Event
 
@@ -7,11 +9,13 @@ import scala.util.Try
 
 sealed trait Command
 
-case class SellItem(
+case class ReduceItem(
+  id: UUID,
   quantity: Int
 ) extends Command
 
-case class RestockItem(
+case class IncreaseItem(
+  id: UUID,
   quantity: Int
 ) extends Command
 
@@ -25,6 +29,7 @@ case class CreateItem(
 ) extends Command
 
 case class ArchiveItem(
+  id: UUID
 ) extends Command
 
 trait CommandHandler[T <: Entity] {

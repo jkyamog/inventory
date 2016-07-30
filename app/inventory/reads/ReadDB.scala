@@ -71,7 +71,7 @@ class ReadDB @Inject() (dbConfigProvider: DatabaseConfigProvider) extends HasDat
           result <- insert(newItem.copy(id = eventTx.entityId))
         } yield result
 
-      case _: ItemSold | _: ItemRestocked =>
+      case _: ItemReduced | _: ItemIncreased =>
         for {
           existingItem <- get(eventTx.entityId)
           updatedItem <- fromTry(itemEventHandler(eventTx.event)(existingItem))

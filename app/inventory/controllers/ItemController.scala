@@ -71,23 +71,23 @@ trait ItemController extends Controller {
     val uuid = UUID.fromString(id)
     for {
       item <- getById(uuid)(eventStore)
-      (eId, event) <- tryTo(ArchiveItem())(Some(item)).doCommand
+      (eId, event) <- tryTo(ArchiveItem(uuid))(Some(item)).doCommand
       txId <- eventStore saveEvent(event, eId)
     } yield Ok(Json.obj("txId" -> txId))
   }
 
-  def sell(id: String) = Action.async(parse.json) { request =>
-    request.body.validate[SellItem].fold (
+  def reduce(id: String) = Action.async(parse.json) { request =>
+    request.body.validate[ReduceItem].fold (
       errors => {
         Future.successful(BadRequest(JsError.toJson(errors)))
       },
-      sell => {
+      reduce => {
         import ItemHelper._
 
         val uuid = UUID.fromString(id)
           for {
             item <- getById(uuid)(eventStore)
-            (eId, event) <- tryTo(sell)(Some(item)).or(notifySellFailed)
+            (eId, event) <- tryTo(reduce)(Some(item)).or(notifySellFailed)
             txId <- eventStore saveEvent(event, eId)
           } yield Ok(Json.obj("txId" -> txId))
       }

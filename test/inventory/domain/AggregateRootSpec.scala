@@ -2,7 +2,7 @@ package inventory.domain
 
 import java.util.UUID
 
-import inventory.events.{ItemSold, ItemCreated}
+import inventory.events.{ItemReduced, ItemCreated}
 import inventory.storage.TestEventStore
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
@@ -20,7 +20,7 @@ class AggregateRootSpec extends PlaySpecification {
 
       val item = await(for {
         txId <- eventStore saveEvent (create, id)
-        _ <- eventStore.saveEvent(ItemSold(id, 2), id)
+        _ <- eventStore.saveEvent(ItemReduced(id, 2), id)
         item <- AggregateRoot.getById(id)(eventStore)
       } yield item)
 
