@@ -6,7 +6,7 @@ import inventory.events.{ItemReduced, ItemCreated}
 import inventory.storage.TestEventStore
 
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.test.{WithApplication, FakeApplication, PlaySpecification}
+import play.api.test.PlaySpecification
 
 class AggregateRootSpec extends PlaySpecification {
 

@@ -6,13 +6,16 @@ import inventory.domain.Item
 import inventory.events.{ItemCreated, ItemReduced}
 import inventory.storage.EventTx
 import play.api.Application
-import play.api.test.{FakeApplication, PlaySpecification, WithApplication}
+import play.api.test.{PlaySpecification, WithApplication}
+import play.api.inject.guice.GuiceApplicationBuilder
 
 
 class ReadDBSpec extends PlaySpecification {
   "ReadDB" should {
 
-    "update item when item is sold" in new WithApplication(FakeApplication()) {
+    def appWithMemoryDatabase = new GuiceApplicationBuilder().configure(inMemoryDatabase("test")).build()
+
+    "update item when item is sold" in new WithApplication(appWithMemoryDatabase) {
       val appToReadDb = Application.instanceCache[ReadDB]
       val readDB = appToReadDb(app)
 
@@ -31,7 +34,7 @@ class ReadDBSpec extends PlaySpecification {
       updated must beSome(Item(id, "test", 7))
     }
 
-    "insert new items when event is for created item" in new WithApplication(FakeApplication()) {
+    "insert new items when event is for created item" in new WithApplication(appWithMemoryDatabase) {
       val appToReadDb = Application.instanceCache[ReadDB]
       val readDB = appToReadDb(app)
 

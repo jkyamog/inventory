@@ -4,15 +4,17 @@ version := "1.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.2"
 
-val playSlickVersion = "2.0.2"
+val playSlickVersion = "3.0.0"
 
 libraryDependencies ++= Seq(
 //  jdbc,
   cache,
   ws,
+  guice,
   specs2 % Test,
+  "com.typesafe.play" %% "play-json" % "2.6.3",
   "com.typesafe.play" %% "play-slick" % playSlickVersion,
   "com.typesafe.play" %% "play-slick-evolutions" % playSlickVersion,
   "org.postgresql" % "postgresql" % "9.4-1201-jdbc41",
