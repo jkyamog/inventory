@@ -7,6 +7,8 @@ import inventory.domain.ItemHelper.itemEventHandler
 import inventory.events._
 import play.api.test.PlaySpecification
 
+import scala.concurrent.ExecutionContext
+
 class ItemSpec extends PlaySpecification {
   "ItemEventHandler" should {
     "reduce its quantity when its sold" in {
@@ -57,10 +59,14 @@ class ItemSpec extends PlaySpecification {
       val item = Item(id, "test item", 2)
       val sell = ReduceItem(id, 3)
 
-      import AggregateRoot._
       import ItemHelper._
+      import scala.concurrent.ExecutionContext.Implicits.global
 
-      val (_, event) = await(tryTo(sell)(Some(item)).or(notifySellFailed))
+      val ar = new AggregateRoot {
+        override implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+      }
+
+      val (_, event) = await(ar.tryTo(sell)(Some(item)).or(notifySellFailed))
       event must beLike{ case SellFailedNotification(_, quantity, _) => quantity must beEqualTo(3) }
     }
 
