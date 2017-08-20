@@ -9,28 +9,27 @@ import inventory.reads.{EventStoreSubscriber, ReadDB}
 import inventory.storage.{EventStore, SqlEventStore}
 import inventory.domain.{AggregateRoot, ItemHelper}
 import play.api.Logger
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import play.api.libs.json._
 import play.api.mvc._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Success
 
 class Items @Inject() (val eventStore: SqlEventStore,
                        val readDB: ReadDB,
-                       eventStoreSubscriber: EventStoreSubscriber) extends ItemController {
+                       eventStoreSubscriber: EventStoreSubscriber,
+                       implicit val ec: ExecutionContext) extends ItemController {
 
   eventStoreSubscriber.subscribe(eventStore.source)
 }
 
-trait ItemController extends Controller {
+trait ItemController extends InjectedController with AggregateRoot {
 
   import JsonHelpers._
-  import AggregateRoot._
 
   val eventStore: EventStore
-
   val readDB: ReadDB
+  implicit val ec: ExecutionContext
 
   def create = Action.async(parse.json) { request =>
     request.body.validate[CreateItem].fold (

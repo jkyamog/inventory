@@ -6,14 +6,16 @@ import javax.inject.Inject
 import inventory.events.Event
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
 import play.api.libs.json.Json
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import slick.driver.JdbcProfile
+import slick.jdbc.JdbcProfile
+
+import scala.concurrent.ExecutionContext
 
 
-class SqlEventStore @Inject() (dbConfigProvider: DatabaseConfigProvider) extends EventStore with HasDatabaseConfig[JdbcProfile] {
+class SqlEventStore @Inject() (dbConfigProvider: DatabaseConfigProvider,
+                               implicit val ec: ExecutionContext) extends EventStore with HasDatabaseConfig[JdbcProfile] {
   lazy val dbConfig = dbConfigProvider.get[JdbcProfile]
 
-  import dbConfig.driver.api._
+  import dbConfig.profile.api._
   import JsonFormatter.eventFormatter
 
   case class EventData(txId: Option[Long], entityId: UUID, event: String)

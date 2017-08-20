@@ -12,16 +12,16 @@ import inventory.storage.EventTx
 import inventory.domain.{Item, ItemHelper}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfig}
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
-import scala.concurrent.Future
-import slick.driver.JdbcProfile
+import scala.concurrent.{ExecutionContext, Future}
+import slick.jdbc.JdbcProfile
 
 
-class ReadDB @Inject() (dbConfigProvider: DatabaseConfigProvider) extends HasDatabaseConfig[JdbcProfile] {
+class ReadDB @Inject() (dbConfigProvider: DatabaseConfigProvider,
+                        implicit val ec: ExecutionContext) extends HasDatabaseConfig[JdbcProfile] {
   val dbConfig = dbConfigProvider.get[JdbcProfile]
 
-  import dbConfig.driver.api._
+  import dbConfig.profile.api._
 
   class Items(tag: Tag) extends Table[Item](tag, "items") {
     def id = column[UUID]("id", O.PrimaryKey)

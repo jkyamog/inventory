@@ -8,9 +8,8 @@ import akka.stream.scaladsl.{Keep, Sink, Source}
 import inventory.events.Event
 import play.api.Logger
 
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
-
 import scala.concurrent.Future
+import scala.util.Success
 
 
 case class EventTx(txId: Long, entityId: UUID, event: Event)
@@ -34,7 +33,7 @@ trait EventStore {
       txId <- storeEvent(entityId, event)
     } yield txId
 
-    txId.onSuccess { case txId =>
+    txId.onComplete { case Success(txId) =>
       Logger.debug("publishing event " + event)
       actorRef ! EventTx(txId, entityId, event)
     }
